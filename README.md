@@ -80,14 +80,7 @@ Git Hubで公開された「PromptSwitch」について、これまでの修正�
     git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch
     ```
 
-3.  （もしノードに\*\*`requirements.txt`\*\*がある場合）依存関係をインストールします。
-
-    ```bash
-    # 環境に合わせて適切なPythonパスを使用してください
-    # 例: /path/to/ComfyUI/python_embeded/python.exe -m pip install -r ComfyUI-PromptSwitch/requirements.txt
-    ```
-
-4.  ComfyUIを再起動します。
+3.  ComfyUIを再起動します。
 
 -----
 

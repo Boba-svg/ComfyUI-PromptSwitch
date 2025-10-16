@@ -33,7 +33,7 @@ const CONFIG = {
     ENABLE_SHIFT_A_CONFIRMATION: false,
     
     // ノード内のバージョン表記（// #2871 ...）の表示/非表示を制御
-    ENABLE_VERSION_TEXT: true, // true: 表示, false: 非表示
+    ENABLE_VERSION_TEXT: false, // true: 表示, false: 非表示
     
     // 最終ID 
     FIXED_ID: "#2871", 

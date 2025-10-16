@@ -1,1 +1,42 @@
+[project]
+# 必須: ノードを一意に識別するID。小文字、ハイフンのみを使用し、"comfyui-"で始めるのが一般的。
+name = "comfyui-promptswitch" 
 
+# 必須: 現在のバージョン。semantic versioning (セマンティックバージョニング)に従い、0.1.0から始めるのが一般的。
+version = "0.1.0" 
+
+# 推奨: Managerのリストに表示される短い説明。
+description = "プロンプトを切り替えるためのカスタムノード (Prompt Switch)" 
+
+# 推奨: Pythonの最低バージョン。通常ComfyUIの推奨バージョンに合わせます。
+requires-python = ">=3.10" 
+
+# 推奨: あなたの名前またはGitHubユーザー名
+authors = [
+    { name = "Boba-svg" } 
+]
+
+# 必須: ライセンス。あなたのリポジトリはMITライセンスなので、そのように指定します。
+license = { text = "MIT" } 
+
+# 必須: GitHubリポジトリへのリンク。
+[project.urls]
+Repository = "https://github.com/Boba-svg/ComfyUI-PromptSwitch"
+
+
+# ----------------------------------------------------
+# [tool.comfy] セクション
+# ComfyUI Managerのための固有の設定です。
+[tool.comfy]
+
+# 必須: あなたのGitHubユーザー名またはユニークな識別子。
+# Managerはこれを使ってノードの場所を特定します。
+PublisherId = "Boba-svg" 
+
+# 推奨: Managerのリストに表示される、ユーザーフレンドリーな名前。
+# 日本語でも構いませんが、英字名が推奨されます。
+DisplayName = "Prompt Switch" 
+
+# (オプション) ノードが特定のサブディレクトリにある場合に指定します。
+# 通常はルートにあるため、不要です。
+# Root = "."

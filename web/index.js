@@ -1,6 +1,7 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
 // PromptSwitch 最終統合版: ID(#2871) - Shift+Aの確認ダイアログ機能とバージョン表記の制御を統合
+// 【修正済み】バージョン表記非表示時に空行の横線も消える問題を修正
 
 import { app } from "../../scripts/app.js";
 
@@ -37,7 +38,8 @@ const CONFIG = {
     
     // 最終ID 
     FIXED_ID: "#2871", 
-    VERSION_COMMENT_TEXT: "",
+    // 【修正箇所 1】バージョン表記のテキストを空ではなく、固定のコメントアウト文字列に設定
+    VERSION_COMMENT_TEXT: "// #2871 PromptSwitch",
     
     // カラーパレット
     COLOR_PROMPT_ON: "#FFF",
@@ -80,6 +82,7 @@ function isLineDisabled(line) {
     const isVersionLine = trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart();
     const isEmpty = trimmedLine === '';
     
+    // CONFIG.VERSION_COMMENT_TEXT が空でなくなったため、バージョン行と空行を正しく区別できる
     if (isVersionLine || isEmpty) return false;
     
     return trimmedLine.startsWith('//');
@@ -297,7 +300,7 @@ function adjustWeightInText(text, lineIndex, delta) {
     let prefix = '';
     if (isDisabledByLeadingComment) {
         const match = trimmedLine.match(/^\/\/\s*/);
-            prefix = match ? match[0] : '//';
+        prefix = match ? match[0] : '//';
         trimmedLine = trimmedLine.substring(prefix.length);
     }
 
@@ -327,9 +330,9 @@ function adjustWeightInText(text, lineIndex, delta) {
     let newPromptPart = "";
     
     if (newWeight.toFixed(2) !== "1.00" || currentWeight.toFixed(2) !== "1.00" || delta !== 0) {
-          newPromptPart = `(${promptBody}:${newWeight})`;
+         newPromptPart = `(${promptBody}:${newWeight})`;
     } else {
-          newPromptPart = promptBody;
+         newPromptPart = promptBody;
     }
     
     lines[lineIndex] = originalLeadingSpaces + prefix + newPromptPart + commentPart;
@@ -548,7 +551,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
         ctx.font = `${currentPromptFontSize}px ${CONFIG.FONT_FAMILY}`;
         ctx.fillStyle = colorPrompt;
         
-        // --- 2回目のコードで分割されていた部分の統合ここから ---
         ctx.fillText(textToDisplay, currentX, y + CONFIG.lineHeight / 2);
         totalTextWidth = ctx.measureText(textToDisplay).width;
         currentX += totalTextWidth;
@@ -565,7 +567,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
         const visibleAfter = afterComment.substring(0, CONFIG.commentPrefixLength);
         
         ctx.fillText(visibleAfter, currentX, y + CONFIG.lineHeight / 2);
-        // --- 2回目のコードで分割されていた部分の統合ここまで ---
     }
     
     return ["", weight, totalTextWidth];
@@ -704,9 +705,19 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         const isVersionLine = line.trim() === CONFIG.VERSION_COMMENT_TEXT.trim();
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
         
-        // ★修正ポイント 1: ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
+        // 【修正箇所 2a】空行の描画チェックを最優先にすることで、VERSION_COMMENT_TEXTが空文字列でなくても
+        // バージョン行のスキップロジックより先に空行を描画させる
+        if (isLineEmpty) {
+            drawSeparatorLine(ctx, node, y);
+            y += CONFIG.emptyLineHeight;
+            lineIndex++;
+            continue;
+        }
+
+        // 【修正箇所 2b】 ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
         if (isVersionLine && !CONFIG.ENABLE_VERSION_TEXT) {
             lineIndex++;
+            // y座標はここでは進めない (空行は既に処理されたため)
             continue;
         }
 
@@ -722,12 +733,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         // 描画処理
         linesDrawnCount++;
         
-        if (isLineEmpty) {
-            drawSeparatorLine(ctx, node, y);
-            y += CONFIG.emptyLineHeight;
-            lineIndex++;
-            continue;
-        }
+        // isLineEmptyは修正箇所2aで処理済み
         
         let displayLine = line.trimStart();
         if (isDisabledByLeadingComment) {
@@ -907,7 +913,7 @@ app.registerExtension({
                             
                             const message = [
                                 `⚠️ 全ての PromptSwitch ノードのプロンプトを無効化（全消し）します。`,
-                                `   (タイトルが「※」または「-」で始まるノードは除外されます)`,
+                                `    (タイトルが「※」または「-」で始まるノードは除外されます)`,
                                 ``,
                                 `続行しますか？`,
                                 `[Y]es / [A]ct / [Shift+A]: 実行`,
@@ -978,12 +984,12 @@ app.registerExtension({
                             this.isCompactMode = !this.isCompactMode;
                             
                             if (!this.isCompactMode) {
-                                 if (this.originalHeight && this.size[1] !== this.originalHeight) {
-                                     this.size[1] = this.originalHeight;
-                                     if (this.onResize) {
-                                         this.onResize();
-                                     }
-                                 }
+                                if (this.originalHeight && this.size[1] !== this.originalHeight) {
+                                    this.size[1] = this.originalHeight;
+                                    if (this.onResize) {
+                                        this.onResize();
+                                    }
+                                }
                             }
                             actionTaken = true;
                         }
@@ -1007,7 +1013,7 @@ app.registerExtension({
                         `F2/E  : 編集モード切替 (ノードの枠のDblClickでも可)`,
                         `A     : All Prompts (選択ノードの全消し優先トグル切替)`,
                         `Shift+A: 全ノードを一括で全無効化 ${confirmationStatus}`, 
-                        `       (タイトルが「※」または「-」で始まるノードは除外されます)`,
+                        `      (タイトルが「※」または「-」で始まるノードは除外されます)`,
                         `R     : 全てのウェイトをリセット (1.0)`,
                         `V     : Visible/Invisible (選択ノードのトグル切替)`,
                         `Shift+V: 全てのノードをVisible/Invisibleで一括トグル切替`,
@@ -1086,10 +1092,10 @@ app.registerExtension({
                     
                     let newContent = currentValue;
                     
-                    // ★修正ポイント 4: ENABLE_VERSION_TEXT が true の場合のみバージョンコメントを追加
+                    // ENABLE_VERSION_TEXT が true の場合のみバージョンコメントを追加
                     if (CONFIG.ENABLE_VERSION_TEXT) {
-                         if (!newContent.startsWith(CONFIG.VERSION_COMMENT_TEXT.trim())) {
-                             newContent = CONFIG.VERSION_COMMENT_TEXT + "\n" + newContent;
+                        if (!newContent.startsWith(CONFIG.VERSION_COMMENT_TEXT.trim())) {
+                            newContent = CONFIG.VERSION_COMMENT_TEXT + "\n" + newContent;
                         }
                     } else {
                         // バージョン表記が不要な場合、もし残っていれば削除（新しいノードには残らない）
@@ -1097,6 +1103,7 @@ app.registerExtension({
                     }
                     
                     if (newContent.trim() === "") {
+                        // 【修正箇所 3】バージョン非表示設定でも空行を描画できるように、最低限の改行を確保
                         textWidget.value = CONFIG.ENABLE_VERSION_TEXT ? CONFIG.VERSION_COMMENT_TEXT + "\n\n" : "\n\n";
                     } else {
                         textWidget.value = newContent;
@@ -1175,7 +1182,7 @@ app.registerExtension({
                     } else {
                              if (originalOnDblClick) {
                                  return originalOnDblClick.apply(this, arguments);
-                               }
+                                }
                     }
                     return true;
                 };

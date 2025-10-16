@@ -37,7 +37,7 @@ const CONFIG = {
     
     // 最終ID 
     FIXED_ID: "#2871", 
-    VERSION_COMMENT_TEXT: "// #2871 PromptSwitch - (F2/E/DblClick to Edit)",
+    VERSION_COMMENT_TEXT: "",
     
     // カラーパレット
     COLOR_PROMPT_ON: "#FFF",

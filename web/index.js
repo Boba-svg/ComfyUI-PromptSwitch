@@ -1,7 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch 最終統合版: ID(#2880) - Fold/GrowキーをV/Shift+Vに変更
-// 新機能: Shift+Aの実行前確認ダイアログをデフォルトで無効化 (ENABLE_SHIFT_A_CONFIRMATIONで制御)
+// PromptSwitch 最終統合版: ID(#2871) - Shift+Aの確認ダイアログ機能とバージョン表記の制御を統合
 
 import { app } from "../../scripts/app.js";
 
@@ -30,8 +29,11 @@ const CONFIG = {
     ENABLE_DBLCLICK_TOGGLE: true,
     ENABLE_R_KEY_RESET: true,
     
-    // ★★★ 新設定: Shift+Aの実行前確認ダイアログを制御 (機能は残し、デフォルトでOFF) ★★★
+    // Shift+Aの実行前確認ダイアログを制御 (機能は残し、デフォルトでOFF)
     ENABLE_SHIFT_A_CONFIRMATION: false,
+    
+    // ノード内のバージョン表記（// #2871 ...）の表示/非表示を制御
+    ENABLE_VERSION_TEXT: true, // true: 表示, false: 非表示
     
     // 最終ID 
     FIXED_ID: "#2871", 
@@ -44,7 +46,6 @@ const CONFIG = {
     COLOR_COMMENT_OFF: "#AAAAAA",
 };
 
-// ★★★ グローバルな確認状態管理を復活 ★★★
 let globalConfirmationActive = false;
 
 // ========================================
@@ -296,7 +297,7 @@ function adjustWeightInText(text, lineIndex, delta) {
     let prefix = '';
     if (isDisabledByLeadingComment) {
         const match = trimmedLine.match(/^\/\/\s*/);
-        prefix = match ? match[0] : '//';
+            prefix = match ? match[0] : '//';
         trimmedLine = trimmedLine.substring(prefix.length);
     }
 
@@ -703,6 +704,12 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         const isVersionLine = line.trim() === CONFIG.VERSION_COMMENT_TEXT.trim();
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
         
+        // ★修正ポイント 1: ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
+        if (isVersionLine && !CONFIG.ENABLE_VERSION_TEXT) {
+            lineIndex++;
+            continue;
+        }
+
         // ノード固有のコンパクトモードを参照
         if (isCompactMode && !node.isEditMode) {
             // バージョン情報行、空行、コメント行は非表示
@@ -757,6 +764,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             height: CONFIG.lineHeight,
         });
         
+        // バージョン行はウェイトボタンを描画しない
         if (weight !== null && !isVersionLine) {
             drawWeightButtons(ctx, node, y, lineIndex, weight);
         }
@@ -777,7 +785,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             let targetHeight;
             
             // 修正ポイント：有効な行がない場合はヘッダーの最小サイズに強制
-            // contentHeightがCONFIG.lineHeight以下の場合 (有効なプロンプト行が実質ゼロの場合)
             if (contentHeight <= CONFIG.lineHeight) {
                 targetHeight = CONFIG.headerHeight + 2; // ヘッダーの最小サイズに強制 (42px)
             } else {
@@ -815,7 +822,7 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "PromptSwitch") {
             
-            // ★★★ グローバルなキーダウンリスナーを復活 (ENABLE_SHIFT_A_CONFIRMATION: true の場合に機能) ★★★
+            // グローバルなキーダウンリスナーの設定 (ENABLE_SHIFT_A_CONFIRMATION: true の場合に機能) 
             if (!app.shiftAConfirmationSetup) {
                 document.addEventListener('keydown', (e) => {
                     // ENABLE_SHIFT_A_CONFIRMATION が false の場合、このリスナーは動作しない
@@ -895,7 +902,7 @@ app.registerExtension({
                             return true;
                         }
 
-                        // ★★★ ENABLE_SHIFT_A_CONFIRMATION の値に応じて動作を分岐 ★★★
+                        // ENABLE_SHIFT_A_CONFIRMATION の値に応じて動作を分岐
                         if (CONFIG.ENABLE_SHIFT_A_CONFIRMATION) {
                             
                             const message = [
@@ -990,6 +997,7 @@ app.registerExtension({
                 
                 else if (e.key === 'F1') {
                     
+                    // F1ヘルプの確認ステータスを更新
                     const confirmationStatus = CONFIG.ENABLE_SHIFT_A_CONFIRMATION ? "（確認あり）" : "（確認なし/即時実行）";
                     
                     const coreHelpLines = [
@@ -998,14 +1006,15 @@ app.registerExtension({
                         `F1    : このヘルプを表示`,
                         `F2/E  : 編集モード切替 (ノードの枠のDblClickでも可)`,
                         `A     : All Prompts (選択ノードの全消し優先トグル切替)`,
-                        `Shift+A: 全ノードを一括で全無効化 ${confirmationStatus}`, // ★★★ F1ヘルプの確認ステータスを更新 ★★★
+                        `Shift+A: 全ノードを一括で全無効化 ${confirmationStatus}`, 
                         `       (タイトルが「※」または「-」で始まるノードは除外されます)`,
                         `R     : 全てのウェイトをリセット (1.0)`,
                         `V     : Visible/Invisible (選択ノードのトグル切替)`,
                         `Shift+V: 全てのノードをVisible/Invisibleで一括トグル切替`,
                         ``,
                         `[設定]`,
-                        `Shift+Aの確認: index.js内のCONFIG.ENABLE_SHIFT_A_CONFIRMATIONで制御されます。`, // ★★★ 設定情報を更新 ★★★
+                        `Shift+Aの確認: index.js内のCONFIG.ENABLE_SHIFT_A_CONFIRMATIONで制御されます。`, 
+                        `バージョン表記: index.js内のCONFIG.ENABLE_VERSION_TEXTで制御されます。`,
                         `Rキー機能のON/OFFは、index.js内のCONFIG.ENABLE_R_KEY_RESETで制御されます。`,
                         ``,
                         `[操作]`,
@@ -1075,15 +1084,24 @@ app.registerExtension({
                         containsOldVersion = true;
                     }
                     
-                    if (currentValue.trim() === "") {
-                        textWidget.value = CONFIG.VERSION_COMMENT_TEXT + "\n\n";
-                    } else {
-                        let newContent = currentValue;
-                        if (!newContent.startsWith(CONFIG.VERSION_COMMENT_TEXT.trim())) {
+                    let newContent = currentValue;
+                    
+                    // ★修正ポイント 4: ENABLE_VERSION_TEXT が true の場合のみバージョンコメントを追加
+                    if (CONFIG.ENABLE_VERSION_TEXT) {
+                         if (!newContent.startsWith(CONFIG.VERSION_COMMENT_TEXT.trim())) {
                              newContent = CONFIG.VERSION_COMMENT_TEXT + "\n" + newContent;
                         }
+                    } else {
+                        // バージョン表記が不要な場合、もし残っていれば削除（新しいノードには残らない）
+                        newContent = newContent.replace(new RegExp(`^${CONFIG.VERSION_COMMENT_TEXT.trim()}\\n?`), '').trimStart();
+                    }
+                    
+                    if (newContent.trim() === "") {
+                        textWidget.value = CONFIG.ENABLE_VERSION_TEXT ? CONFIG.VERSION_COMMENT_TEXT + "\n\n" : "\n\n";
+                    } else {
                         textWidget.value = newContent;
                     }
+
 
                     if (textWidget.callback) {
                         textWidget.callback(textWidget.value);

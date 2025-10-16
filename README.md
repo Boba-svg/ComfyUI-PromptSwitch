@@ -1,0 +1,2 @@
+# ComfyUI-PromptSwitch
+ComfyUI-PromptSwitchはkambara様のComfyUI-PromptPaletteの改編バージョンです。

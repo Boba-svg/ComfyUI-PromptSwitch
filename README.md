@@ -7,6 +7,7 @@
 ## インストール
 
 cd /path/to/ComfyUI/custom_nodes
+
 git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch
 
 ## 使用方法

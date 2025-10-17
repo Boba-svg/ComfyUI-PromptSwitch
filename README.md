@@ -24,6 +24,7 @@
 PromptSwitchの主要機能、特にコメントの見やすさ改善やウェイト調整、そしてPrompt Paletteから引き継いだ「EDITモードでの機能維持」を一枚で解説しています。
 
 ![機能説明](images/setsumei.png)
+![機能説明](images/compact.png)
 
 ### 1. 超直感的！インタラクティブなプロンプト管理
 

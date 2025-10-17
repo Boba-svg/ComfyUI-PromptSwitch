@@ -74,19 +74,19 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 
 ### 1. 他の方の作ったプロンプトの導入のしやすさ
 
-プロンプトをコピー後、別途エディターで「カンマ」を「カンマ＋改行文字」に置換して本ノードに貼り付けると、即座にすべての要素がリスト化されます。
+プロンプトをコピー後、別途エディターで「カンマ」を「カンマ＋改行文字」に置換して本ノードに貼り付けると、**即座にすべての要素がリスト化**されます。
 
 ### 2. プロンプト紹介サイト＋チャットAIを活用する活用法
 
 プロンプト紹介サイトやチャットAIを活用することで、労せずに強力なプロンプトリストを入手し、再検索の手間を省くことができます。
 
-1.  チャットAIの入力画面にまずこう打ちます。（エンターはまだ押さないで）
-    ```bash
+1.  チャットAIの入力画面にまず、以下の指示文を打ちます。（エンターはまだ押さないで）
+    ```
     こちらの中のプロンプトとそれに対するコメントを「プロンプト // コメント」という形で抽出してほしい。カテゴリが変わったら空白行を入れて、一回のコピーボタンですむようにまとめて。
     ```
-2.  そしてプロンプト紹介サイトの内容をctrl+a→ctrl+cでコピー、上記の入力のあとに貼り付けをしてエンター。
-2.  チャットAIは「プロンプト // コメント」の形でそのページのプロンプトをリスト化し、コピーボタンまで用意してくれるでしょう。
-3.  それをPromptSwitchに貼り付ければ、**即強力なプロンプトリストを入手**でき、忘れるたびにプロンプト紹介サイトを検索する手間から逃れることができます。
+2.  そしてプロンプト紹介サイトの内容を `Ctrl + A` → `Ctrl + C` でコピーし、上記の入力のあとに貼り付けをしてエンター。
+3.  チャットAIは「プロンプト // コメント」の形でそのページのプロンプトをリスト化し、コピーボタンまで用意してくれるでしょう。
+4.  それをPromptSwitchに貼り付ければ、**即強力なプロンプトリストを入手**でき、忘れるたびにプロンプト紹介サイトを検索する手間から逃れることができます。
 
 ***
 
@@ -120,7 +120,7 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 2.  以下のコマンドでリポジトリをクローン（ダウンロード）します。
 
     ```bash
-    git clone [https://github.com/Boba-svg/ComfyUI-PromptSwitch](https://github.com/Boba-svg/ComfyUI-PromptSwitch)
+    git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch
     ```
 
 3.  ComfyUIを再起動すれば完了です！
@@ -143,7 +143,7 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 
 ## 🌟 クレジット (Credit) / 感謝！ 🙏
 
-このカスタムノード（ComfyUI-PromptSwitch）は、**kambara**氏によって開発された優れたプロジェクト [`ComfyUI-PromptPalette`](https://github.com/kambara/ComfyUI-PromptPalette) のアイデアをフォークし、大幅に機能拡張したものです。
+このカスタムノード（ComfyUI-PromptSwitch）は、**kambara**氏によって開発された優れたプロジェクト [`ComfyUI-PromptPalette`]([https://github.com/kambara/ComfyUI-PromptPalette](https://github.com/kambara/ComfyUI-PromptPalette)) のアイデアをフォークし、大幅に機能拡張したものです。
 
 オリジナルの作者とプロジェクトに心から感謝いたします。
 
@@ -153,4 +153,4 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 
 このプロジェクトは、オリジナルと同じく **MITライセンス**の下で公開されています。
 
-詳細はリポジトリ内の [`LICENSE`ファイル](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) をご確認ください。
+詳細はリポジトリ内の [`LICENSE`ファイル]([https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE)) をご確認ください。

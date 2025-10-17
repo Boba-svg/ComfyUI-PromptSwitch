@@ -1,7 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch 最終統合版: ID(#2871) - Shift+Aの確認ダイアログ機能とバージョン表記の制御を統合
-// 【修正済み】バージョン表記非表示時に空行の横線も消える問題を修正
+// PromptSwitch 最終統合版: ID(#2892) - プレフィックスによる除外機能（※, -）を削除。除外は末尾タグのみに統一。
 
 import { app } from "../../scripts/app.js";
 
@@ -33,13 +32,13 @@ const CONFIG = {
     // Shift+Aの実行前確認ダイアログを制御 (機能は残し、デフォルトでOFF)
     ENABLE_SHIFT_A_CONFIRMATION: false,
     
-    // ノード内のバージョン表記（// #2871 ...）の表示/非表示を制御
+    // ノード内のバージョン表記（// #2892 ...）の表示/非表示を制御
     ENABLE_VERSION_TEXT: false, // true: 表示, false: 非表示
     
     // 最終ID 
-    FIXED_ID: "#2871", 
-    // 【修正箇所 1】バージョン表記のテキストを空ではなく、固定のコメントアウト文字列に設定
-    VERSION_COMMENT_TEXT: "// #2871 PromptSwitch",
+    FIXED_ID: "#2892", 
+    // バージョン表記のテキスト
+    VERSION_COMMENT_TEXT: "// #2892 PromptSwitch",
     
     // カラーパレット
     COLOR_PROMPT_ON: "#FFF",
@@ -65,14 +64,41 @@ function findTextWidget(node) {
 }
 
 /**
- * ノードタイトルが除外条件に該当するかどうかを判定する
+ * ノードタイトルが指定された除外キーに該当するかどうかを判定する
+ * 除外キーはノードタイトルの末尾に /key の形式で指定されている必要がある
+ * (例: Shift+A除外は isNodeExcluded(node, ['a']), Shift+V除外は isNodeExcluded(node, ['v']) )
+ * 複合指定も可能 (例: /av, /va)
+ * * **ver #2892: プレフィックス（※, -）による除外ロジックは削除されました。**
+ * * @param {object} node - 対象のノードオブジェクト
+ * @param {string[]} keys - 判定したい除外キーの配列 (例: ['a'], ['v'])
+ * @returns {boolean} - 除外対象であれば true
  */
-function isNodeExcludedFromShiftA(node) {
+function isNodeExcluded(node, keys) {
     if (!node.title) return false;
     const trimmedTitle = node.title.trim();
-    return trimmedTitle.startsWith('※') || trimmedTitle.startsWith('-');
-}
+    
+    // ----------------------------------------------------
+    // 既存の除外プレフィックス ('※' または '-') のチェックを削除
+    // ----------------------------------------------------
 
+    // ノードタイトルから最後の '/tag' 部分を抽出してチェック
+    // 末尾の / で始まり、英字小文字で終わる部分を抽出 (大文字・小文字を無視)
+    const tagMatch = trimmedTitle.match(/\/([a-z]+)$/i);
+    if (!tagMatch) {
+        return false;
+    }
+    
+    const tagString = tagMatch[1].toLowerCase(); // 例: 'av'
+    
+    // 指定されたキーのいずれかがタグ文字列に含まれていれば除外
+    for (const key of keys) {
+        if (tagString.includes(key)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 /**
  * プロンプト行がコメントアウトされているか（無効化されているか）を判定する
@@ -82,7 +108,6 @@ function isLineDisabled(line) {
     const isVersionLine = trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart();
     const isEmpty = trimmedLine === '';
     
-    // CONFIG.VERSION_COMMENT_TEXT が空でなくなったため、バージョン行と空行を正しく区別できる
     if (isVersionLine || isEmpty) return false;
     
     return trimmedLine.startsWith('//');
@@ -178,8 +203,8 @@ function deactivateAllPromptSwitchNodes(app) {
     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
     
     for (const node of promptNodes) {
-        // Shift+A除外ロジック
-        if (isNodeExcludedFromShiftA(node)) {
+        // Shift+A除外ロジック: 除外キー 'a'
+        if (isNodeExcluded(node, ['a'])) { 
             continue; // スキップ
         }
         
@@ -193,7 +218,6 @@ function deactivateAllPromptSwitchNodes(app) {
     }
     app.graph.setDirtyCanvas(true, true);
     if (app.canvas.editor && app.canvas.editor.showMessage) {
-        // 確認スキップ時はメッセージを強調
         const messagePrefix = CONFIG.ENABLE_SHIFT_A_CONFIRMATION ? "✅" : "💥 [確認スキップ]";
         app.canvas.editor.showMessage(`${messagePrefix} 全ての PromptSwitch ノードを無効化しました。`, 3000);
     }
@@ -705,8 +729,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         const isVersionLine = line.trim() === CONFIG.VERSION_COMMENT_TEXT.trim();
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
         
-        // 【修正箇所 2a】空行の描画チェックを最優先にすることで、VERSION_COMMENT_TEXTが空文字列でなくても
-        // バージョン行のスキップロジックより先に空行を描画させる
+        // 空行の描画チェックを最優先
         if (isLineEmpty) {
             drawSeparatorLine(ctx, node, y);
             y += CONFIG.emptyLineHeight;
@@ -714,17 +737,16 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             continue;
         }
 
-        // 【修正箇所 2b】 ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
+        // ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
         if (isVersionLine && !CONFIG.ENABLE_VERSION_TEXT) {
             lineIndex++;
-            // y座標はここでは進めない (空行は既に処理されたため)
             continue;
         }
 
         // ノード固有のコンパクトモードを参照
         if (isCompactMode && !node.isEditMode) {
             // バージョン情報行、空行、コメント行は非表示
-            if (isVersionLine || isLineEmpty || isDisabledByLeadingComment) {
+            if (isVersionLine || isDisabledByLeadingComment) {
                 lineIndex++;
                 continue;
             }
@@ -732,8 +754,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         
         // 描画処理
         linesDrawnCount++;
-        
-        // isLineEmptyは修正箇所2aで処理済み
         
         let displayLine = line.trimStart();
         if (isDisabledByLeadingComment) {
@@ -790,7 +810,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             
             let targetHeight;
             
-            // 修正ポイント：有効な行がない場合はヘッダーの最小サイズに強制
+            // 有効な行がない場合はヘッダーの最小サイズに強制
             if (contentHeight <= CONFIG.lineHeight) {
                 targetHeight = CONFIG.headerHeight + 2; // ヘッダーの最小サイズに強制 (42px)
             } else {
@@ -881,11 +901,11 @@ app.registerExtension({
                         // 編集モード中は動作させない
                         if (this.isEditMode) return false;
                         
-                        // 全ての PromptSwitch ノードに有効なプロンプト行があるかチェック
+                        // 全ての PromptSwitch ノードに有効なプロンプト行があるかチェック (除外ノードはスキップ)
                         const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
                         
-                        // Shift+A除外ノードを除外してチェック
-                        const activeNodes = promptNodes.filter(n => !isNodeExcludedFromShiftA(n));
+                        // Shift+Aの除外キー: 'a'
+                        const activeNodes = promptNodes.filter(n => !isNodeExcluded(n, ['a']));
 
                         const hasActivePrompts = activeNodes.some(n => {
                             const w = findTextWidget(n);
@@ -913,7 +933,7 @@ app.registerExtension({
                             
                             const message = [
                                 `⚠️ 全ての PromptSwitch ノードのプロンプトを無効化（全消し）します。`,
-                                `    (タイトルが「※」または「-」で始まるノードは除外されます)`,
+                                `    (除外タグ: /a /av /va)`,
                                 ``,
                                 `続行しますか？`,
                                 `[Y]es / [A]ct / [Shift+A]: 実行`,
@@ -961,10 +981,15 @@ app.registerExtension({
                         const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
                         if (promptNodes.length === 0) return true;
 
-                        const allAreCompact = promptNodes.every(n => n.isCompactMode);
+                        // Shift+Vの除外キー: 'v'
+                        const togglableNodes = promptNodes.filter(n => !isNodeExcluded(n, ['v']));
+
+                        if (togglableNodes.length === 0) return true;
+
+                        const allAreCompact = togglableNodes.every(n => n.isCompactMode);
                         const targetMode = allAreCompact ? false : true;
 
-                        for (const node of promptNodes) {
+                        for (const node of togglableNodes) { // 除外されたノードはスキップ
                             if (!node.isEditMode) {
                                 node.isCompactMode = targetMode;
                                 
@@ -1003,7 +1028,6 @@ app.registerExtension({
                 
                 else if (e.key === 'F1') {
                     
-                    // F1ヘルプの確認ステータスを更新
                     const confirmationStatus = CONFIG.ENABLE_SHIFT_A_CONFIRMATION ? "（確認あり）" : "（確認なし/即時実行）";
                     
                     const coreHelpLines = [
@@ -1013,10 +1037,11 @@ app.registerExtension({
                         `F2/E  : 編集モード切替 (ノードの枠のDblClickでも可)`,
                         `A     : All Prompts (選択ノードの全消し優先トグル切替)`,
                         `Shift+A: 全ノードを一括で全無効化 ${confirmationStatus}`, 
-                        `      (タイトルが「※」または「-」で始まるノードは除外されます)`,
+                        `      (除外タグ: /a, /av, /va)`,
                         `R     : 全てのウェイトをリセット (1.0)`,
                         `V     : Visible/Invisible (選択ノードのトグル切替)`,
                         `Shift+V: 全てのノードをVisible/Invisibleで一括トグル切替`,
+                        `      (除外タグ: /v, /av, /va)`,
                         ``,
                         `[設定]`,
                         `Shift+Aの確認: index.js内のCONFIG.ENABLE_SHIFT_A_CONFIRMATIONで制御されます。`, 
@@ -1103,7 +1128,7 @@ app.registerExtension({
                     }
                     
                     if (newContent.trim() === "") {
-                        // 【修正箇所 3】バージョン非表示設定でも空行を描画できるように、最低限の改行を確保
+                        // バージョン非表示設定でも空行を描画できるように、最低限の改行を確保
                         textWidget.value = CONFIG.ENABLE_VERSION_TEXT ? CONFIG.VERSION_COMMENT_TEXT + "\n\n" : "\n\n";
                     } else {
                         textWidget.value = newContent;

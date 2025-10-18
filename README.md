@@ -133,7 +133,7 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 2.  以下のコマンドでリポジトリをクローン（ダウンロード）します。
 
     ```bash
-    git clone [https://github.com/Boba-svg/ComfyUI-PromptSwitch.git](https://github.com/Boba-svg/ComfyUI-PromptSwitch.git)
+    git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git
     ```
 
 3.  ComfyUIを再起動すれば完了です！

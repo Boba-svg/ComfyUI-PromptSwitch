@@ -1,6 +1,7 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch 最終統合版: ID(#2892) - プレフィックスによる除外機能（※, -）を削除。除外は末尾タグのみに統一。
+// PromptSwitch #2895
+// カンマの扱いを統一性のあるもの修正
 
 import { app } from "../../scripts/app.js";
 
@@ -26,19 +27,6 @@ const CONFIG = {
     COMMENT_FONT_SCALE: 0.8,
     WEIGHT_STEP: 0.10,
     PROMPT_MAX_LENGTH_DISPLAY: 30,
-    ENABLE_DBLCLICK_TOGGLE: true,
-    ENABLE_R_KEY_RESET: true,
-    
-    // Shift+Aの実行前確認ダイアログを制御 (機能は残し、デフォルトでOFF)
-    ENABLE_SHIFT_A_CONFIRMATION: false,
-    
-    // ノード内のバージョン表記（// #2892 ...）の表示/非表示を制御
-    ENABLE_VERSION_TEXT: false, // true: 表示, false: 非表示
-    
-    // 最終ID 
-    FIXED_ID: "#2892", 
-    // バージョン表記のテキスト
-    VERSION_COMMENT_TEXT: "// #2892 PromptSwitch",
     
     // カラーパレット
     COLOR_PROMPT_ON: "#FFF",
@@ -46,8 +34,6 @@ const CONFIG = {
     COLOR_PROMPT_OFF: "#AAAAAA",
     COLOR_COMMENT_OFF: "#AAAAAA",
 };
-
-let globalConfirmationActive = false;
 
 // ========================================
 // 1. UI Control Helper Functions
@@ -68,8 +54,7 @@ function findTextWidget(node) {
  * 除外キーはノードタイトルの末尾に /key の形式で指定されている必要がある
  * (例: Shift+A除外は isNodeExcluded(node, ['a']), Shift+V除外は isNodeExcluded(node, ['v']) )
  * 複合指定も可能 (例: /av, /va)
- * * **ver #2892: プレフィックス（※, -）による除外ロジックは削除されました。**
- * * @param {object} node - 対象のノードオブジェクト
+ * @param {object} node - 対象のノードオブジェクト
  * @param {string[]} keys - 判定したい除外キーの配列 (例: ['a'], ['v'])
  * @returns {boolean} - 除外対象であれば true
  */
@@ -77,10 +62,6 @@ function isNodeExcluded(node, keys) {
     if (!node.title) return false;
     const trimmedTitle = node.title.trim();
     
-    // ----------------------------------------------------
-    // 既存の除外プレフィックス ('※' または '-') のチェックを削除
-    // ----------------------------------------------------
-
     // ノードタイトルから最後の '/tag' 部分を抽出してチェック
     // 末尾の / で始まり、英字小文字で終わる部分を抽出 (大文字・小文字を無視)
     const tagMatch = trimmedTitle.match(/\/([a-z]+)$/i);
@@ -105,10 +86,9 @@ function isNodeExcluded(node, keys) {
  */
 function isLineDisabled(line) {
     const trimmedLine = line.trimStart();
-    const isVersionLine = trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart();
     const isEmpty = trimmedLine === '';
     
-    if (isVersionLine || isEmpty) return false;
+    if (isEmpty) return false;
     
     return trimmedLine.startsWith('//');
 }
@@ -124,7 +104,6 @@ function toggleAllPrompts(text) {
     let needsDeactivation = false;
     for (const line of lines) {
         if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) continue;
-        if (line.trim() === CONFIG.VERSION_COMMENT_TEXT.trimStart()) continue;
         if (line.trim() === '') continue;
 
         if (!isLineDisabled(line)) {
@@ -142,9 +121,8 @@ function toggleAllPrompts(text) {
         
         let trimmedLine = line.trimStart();
         const isCommented = trimmedLine.startsWith('//');
-        const isVersionLine = trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart();
         
-        if (isVersionLine || trimmedLine === '') {
+        if (trimmedLine === '') {
             return line;
         }
 
@@ -179,9 +157,8 @@ function deactivatePromptText(text) {
         
         let trimmedLine = line.trimStart();
         const isCommented = trimmedLine.startsWith('//');
-        const isVersionLine = trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart();
         
-        if (isVersionLine || trimmedLine === '') {
+        if (trimmedLine === '') {
             return line;
         }
 
@@ -217,12 +194,7 @@ function deactivateAllPromptSwitchNodes(app) {
         }
     }
     app.graph.setDirtyCanvas(true, true);
-    if (app.canvas.editor && app.canvas.editor.showMessage) {
-        const messagePrefix = CONFIG.ENABLE_SHIFT_A_CONFIRMATION ? "✅" : "💥 [確認スキップ]";
-        app.canvas.editor.showMessage(`${messagePrefix} 全ての PromptSwitch ノードを無効化しました。`, 3000);
-    }
 }
-
 
 /**
  * モード切り替えロジックを分離
@@ -241,17 +213,27 @@ function toggleEditMode(node, textWidget) {
 
 /**
  * プロンプト行からウェイトと括弧を分離するヘルパー
+ * (修正版: 末尾のコンマを分離して処理)
+ * @returns {Array} [promptBody, currentWeight, trailingComma]
  */
 function stripOuterParenthesesAndWeight(text) {
     let currentWeight = 1.0;
     let processedText = text.trim();
+
+    // ⭐ 修正点: 末尾のコンマを一時的に分離
+    let trailingComma = '';
+    if (processedText.endsWith(',')) {
+        trailingComma = ',';
+        processedText = processedText.substring(0, processedText.length - 1).trimEnd();
+    }
 
     let matchWithWeight = processedText.match(/^\s*\((.*)\s*:\s*([\d\.\-]+)\s*\)\s*$/);
     
     if (matchWithWeight) {
         currentWeight = parseFloat(matchWithWeight[2]);
         processedText = matchWithWeight[1].trim();
-        return [processedText, currentWeight];
+        // 戻り値に trailingComma を追加
+        return [processedText, currentWeight, trailingComma]; 
     }
     
     let matchOnlyParens = processedText.match(/^\s*\((.*)\)\s*$/);
@@ -259,7 +241,8 @@ function stripOuterParenthesesAndWeight(text) {
         processedText = matchOnlyParens[1].trim();
     }
     
-    return [processedText, currentWeight];
+    // 戻り値に trailingComma を追加
+    return [processedText, currentWeight, trailingComma];
 }
 
 /**
@@ -272,7 +255,7 @@ function resetAllWeights(text) {
         let originalLeadingSpaces = line.match(/^(\s*)/)[0];
         let trimmedLine = line.trimStart();
 
-        if (trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart() || trimmedLine === '') return line;
+        if (trimmedLine === '') return line;
 
         const isDisabledByLeadingComment = trimmedLine.startsWith('//');
         let prefix = '';
@@ -293,13 +276,16 @@ function resetAllWeights(text) {
         
         if (promptPartWithWeight === '') return line;
 
+        // stripOuterParenthesesAndWeight の戻り値が 3 要素になったが、ここでは trailingComma は使わないため無視
         let [promptBody, currentWeight] = stripOuterParenthesesAndWeight(promptPartWithWeight);
         
         if (promptBody === '') {
              promptBody = promptPartWithWeight;
         }
         
-        let newPromptPart = promptBody;
+        // Rキーリセット時は括弧を完全に削除
+        let newPromptPart = promptBody.replace(/,$/, ''); // 本体にくっついたコンマを削除
+        newPromptPart = newPromptPart + (promptPartWithWeight.endsWith(',') ? ',' : ''); // 元のコンマを末尾に復元
         
         return originalLeadingSpaces + prefix + newPromptPart + commentPart;
     });
@@ -308,7 +294,7 @@ function resetAllWeights(text) {
 }
 
 /**
- * 特定の行のプロンプトウェイトを調整
+ * 特定の行のプロンプトウェイトを調整 (修正版: コンマ処理ロジックを反映)
  */
 function adjustWeightInText(text, lineIndex, delta) {
     const lines = text.split('\n');
@@ -317,8 +303,6 @@ function adjustWeightInText(text, lineIndex, delta) {
     let line = lines[lineIndex];
     let originalLeadingSpaces = line.match(/^(\s*)/)[0];
     let trimmedLine = line.trimStart();
-
-    if (trimmedLine === CONFIG.VERSION_COMMENT_TEXT.trimStart()) return text;
 
     const isDisabledByLeadingComment = trimmedLine.startsWith('//');
     let prefix = '';
@@ -342,10 +326,12 @@ function adjustWeightInText(text, lineIndex, delta) {
         return lines.join('\n');
     }
 
-    let [promptBody, currentWeight] = stripOuterParenthesesAndWeight(promptPartWithWeight);
+    // ⭐ 修正点: stripOuterParenthesesAndWeight の戻り値に trailingComma を追加
+    let [promptBody, currentWeight, trailingComma] = stripOuterParenthesesAndWeight(promptPartWithWeight);
     
     if (promptBody === '') {
-         promptBody = promptPartWithWeight;
+        // コンマだけ剥がした後、テキストが空になった場合のガード
+        promptBody = promptPartWithWeight.trim().replace(/,$/, '');
     }
     
     let newWeight = Math.min(CONFIG.maxWeight, Math.max(CONFIG.minWeight, currentWeight + delta));
@@ -353,10 +339,13 @@ function adjustWeightInText(text, lineIndex, delta) {
     
     let newPromptPart = "";
     
-    if (newWeight.toFixed(2) !== "1.00" || currentWeight.toFixed(2) !== "1.00" || delta !== 0) {
-         newPromptPart = `(${promptBody}:${newWeight})`;
+    // ⭐ 修正点: 1.00 の判定と trailingComma の外側配置ロジック
+    if (newWeight.toFixed(2) !== "1.00") {
+        // 1.00 ではない場合: 括弧とウェイトを付与し、コンマは括弧の外に復元
+        newPromptPart = `(${promptBody}:${newWeight.toFixed(2)})${trailingComma}`;
     } else {
-         newPromptPart = promptBody;
+        // 1.00 の場合: 括弧とウェイトを削除し、コンマはプロンプト本体の末尾に復元
+        newPromptPart = `${promptBody}${trailingComma}`;
     }
     
     lines[lineIndex] = originalLeadingSpaces + prefix + newPromptPart + commentPart;
@@ -373,7 +362,7 @@ function toggleCommentOnLine(text, lineIndex) {
 
     let line = lines[lineIndex];
     
-    if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/) || line.trim() === CONFIG.VERSION_COMMENT_TEXT.trim()) return text;
+    if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) return text;
     
     const commentPrefix = "// ";
     const prefixRegex = /^\s*\/\/\s*/;
@@ -420,7 +409,6 @@ function handleClickableAreaAction(area, textWidget, app) {
     app.graph.setDirtyCanvas(true, true);
 }
 
-
 /**
  * チェックボックス/ウェイトボタンのクリックハンドラを設定
  */
@@ -446,7 +434,6 @@ function setupClickHandler(node, textWidget, app) {
         const clickedArea = this.findClickedArea(pos);
         
         if (clickedArea) {
-            
             // 左クリック (e.which === 1) のみアクションを実行
             if (e.which === 1) {
                 if (clickedArea.type !== 'empty_space_for_dblclick' && clickedArea.type !== 'version_info') {
@@ -495,10 +482,9 @@ function drawSeparatorLine(ctx, node, y) {
 }
 
 /**
- * コメントの状態とウェイトを考慮してテキストを描画
+ * コメントの状態とウェイトを考慮してテキストを描画 (修正版: コンマ処理ロジックを反映)
  */
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
-    
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
     const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_COMMENT_ON;
@@ -516,16 +502,29 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     let currentX = startX;
     let totalTextWidth = 0;
     
+    /**
+     * プロンプト行からウェイトと括弧を分離するヘルパー（描画用）
+     * NOTE: 編集/描画ロジックの修正に合わせ、コンマを分離し、プロンプト本体に再結合して返す。
+     * @returns {Array} [promptBodyWithComma, currentWeight]
+     */
     function stripOuterParenthesesAndWeightLocal(text) {
         let currentWeight = 1.0;
         let processedText = text.trim();
+        
+        // ⭐ 修正点: 末尾のコンマを一時的に分離
+        let trailingComma = '';
+        if (processedText.endsWith(',')) {
+            trailingComma = ',';
+            processedText = processedText.substring(0, processedText.length - 1).trimEnd();
+        }
 
         let matchWithWeight = processedText.match(/^\s*\((.*)\s*:\s*([\d\.\-]+)\s*\)\s*$/);
         
         if (matchWithWeight) {
             currentWeight = parseFloat(matchWithWeight[2]);
             processedText = matchWithWeight[1].trim();
-            return [processedText, currentWeight];
+            // 描画時はコンマを本体に戻す
+            return [processedText + trailingComma, currentWeight]; 
         }
         
         let matchOnlyParens = processedText.match(/^\s*\((.*)\)\s*$/);
@@ -533,7 +532,8 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
             processedText = matchOnlyParens[1].trim();
         }
         
-        return [processedText, currentWeight];
+        // 描画時はコンマを本体に戻す
+        return [processedText + trailingComma, currentWeight];
     }
 
     if (firstCommentIndex === -1) {
@@ -558,7 +558,8 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
         let beforeText = trimLine.substring(0, firstCommentIndex).trim();
         let afterComment = trimLine.substring(firstCommentIndex + 2);
         
-        beforeText = beforeText.replace(/[\s,]+$/, '');
+        // ⭐ 修正点: コンマを剥がすロジックは削除 (stripOuterParenthesesAndWeightLocalに任せる)
+        // beforeText = beforeText.replace(/[\s,]+$/, '');
         
         [beforeText, weight] = stripOuterParenthesesAndWeightLocal(beforeText);
         
@@ -718,7 +719,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     let linesDrawnCount = 0; // 実際に描画された行数 (空行/コメント行含む)
 
     for (const line of lines) {
-        
         const isInternalDisabled = line.match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/);
         if (isInternalDisabled) {
             lineIndex++;
@@ -726,7 +726,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
         
         const isLineEmpty = line.trim() === '';
-        const isVersionLine = line.trim() === CONFIG.VERSION_COMMENT_TEXT.trim();
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
         
         // 空行の描画チェックを最優先
@@ -737,16 +736,10 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             continue;
         }
 
-        // ENABLE_VERSION_TEXT が false の場合、バージョン行は描画もカウントもスキップ
-        if (isVersionLine && !CONFIG.ENABLE_VERSION_TEXT) {
-            lineIndex++;
-            continue;
-        }
-
         // ノード固有のコンパクトモードを参照
         if (isCompactMode && !node.isEditMode) {
-            // バージョン情報行、空行、コメント行は非表示
-            if (isVersionLine || isDisabledByLeadingComment) {
+            // コメント行は非表示
+            if (isDisabledByLeadingComment) {
                 lineIndex++;
                 continue;
             }
@@ -782,7 +775,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         
         // クリックでON/OFF切り替えができるエリア
         node.clickableAreas.push({
-            type: isVersionLine ? 'version_info' : 'text_area_suppressor',
+            type: 'text_area_suppressor',
             lineIndex: lineIndex,
             x: textClickableX,
             y: y,
@@ -790,8 +783,8 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             height: CONFIG.lineHeight,
         });
         
-        // バージョン行はウェイトボタンを描画しない
-        if (weight !== null && !isVersionLine) {
+        // ウェイトボタンを描画
+        if (weight !== null) {
             drawWeightButtons(ctx, node, y, lineIndex, weight);
         }
 
@@ -807,7 +800,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
 
     if (!node.isEditMode) {
         if (node.isCompactMode) {
-            
             let targetHeight;
             
             // 有効な行がない場合はヘッダーの最小サイズに強制
@@ -825,7 +817,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             }
         } else {
             // 通常モード（Grow）に戻す際
-            
             let desiredHeight = Math.max(newHeight, node.originalHeight || CONFIG.minNodeHeight);
 
             if (node.size[1] !== desiredHeight) {
@@ -837,7 +828,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     }
 }
 
-
 // ========================================
 // 2. Extension Registration
 // ========================================
@@ -847,57 +837,15 @@ app.registerExtension({
     
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "PromptSwitch") {
-            
-            // グローバルなキーダウンリスナーの設定 (ENABLE_SHIFT_A_CONFIRMATION: true の場合に機能) 
-            if (!app.shiftAConfirmationSetup) {
-                document.addEventListener('keydown', (e) => {
-                    // ENABLE_SHIFT_A_CONFIRMATION が false の場合、このリスナーは動作しない
-                    if (!CONFIG.ENABLE_SHIFT_A_CONFIRMATION) return;
-                    
-                    if (globalConfirmationActive) {
-                        
-                        const key = e.key.toLowerCase();
-                        
-                        if (key === 'escape' || key === 'n') {
-                            globalConfirmationActive = false;
-                            if (app.canvas.editor && app.canvas.editor.showMessage) {
-                                app.canvas.editor.showMessage("❌ 全ノード無効化をキャンセルしました。", 2000);
-                            }
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }
-                        else if (key === 'y' || key === 'a' || (e.key === 'a' && e.shiftKey)) {
-                            deactivateAllPromptSwitchNodes(app);
-                            globalConfirmationActive = false;
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }
-                    }
-                }, true); // キャプチャフェーズで処理
-                
-                app.shiftAConfirmationSetup = true;
-            }
-            // グローバルなキーダウンリスナー設定ここまで
-
-
-            // A/D/F2/E/R/V キーショートカット
+            // A/F2/E/R/V キーショートカット
             nodeType.prototype.onKeyDown = function(e) {
                 const textWidget = findTextWidget(this);
                 if (!textWidget) return;
 
-                // グローバル確認ダイアログが表示中の場合は、ノード内の処理はスキップ
-                if (globalConfirmationActive) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return true;
-                }
-
                 let actionTaken = false;
                 
                 if (e.key === 'a' || e.key === 'A') {
-                    
-                    if (e.shiftKey) { // Shift+A: 全ノード全無効化（確認付き、またはスキップ）
-                        
+                    if (e.shiftKey) { // Shift+A: 全ノード全無効化
                         // 編集モード中は動作させない
                         if (this.isEditMode) return false;
                         
@@ -913,7 +861,6 @@ app.registerExtension({
                                 const lines = w.value.split('\n');
                                 return lines.some(line => {
                                     if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) return false;
-                                    if (line.trim() === CONFIG.VERSION_COMMENT_TEXT.trimStart()) return false;
                                     if (line.trim() === '') return false;
                                     return !isLineDisabled(line);
                                 });
@@ -928,37 +875,9 @@ app.registerExtension({
                             return true;
                         }
 
-                        // ENABLE_SHIFT_A_CONFIRMATION の値に応じて動作を分岐
-                        if (CONFIG.ENABLE_SHIFT_A_CONFIRMATION) {
-                            
-                            const message = [
-                                `⚠️ 全ての PromptSwitch ノードのプロンプトを無効化（全消し）します。`,
-                                `    (除外タグ: /a /av /va)`,
-                                ``,
-                                `続行しますか？`,
-                                `[Y]es / [A]ct / [Shift+A]: 実行`,
-                                `[N]o / [Esc]: キャンセル`,
-                            ].join('\n');
-                            
-                            if (app.canvas.editor && app.canvas.editor.showMessage) {
-                                app.canvas.editor.showMessage(message, 8000);
-                            } else {
-                                if (!confirm(message.replace(/\n\n/, '\n').replace(/\n/g, ' '))) {
-                                    return true;
-                                }
-                                deactivateAllPromptSwitchNodes(app);
-                                return true;
-                            }
-
-                            globalConfirmationActive = true;
-                            
-                        } else {
-                            // 確認をスキップして即時実行
-                            deactivateAllPromptSwitchNodes(app);
-                        }
-                        
+                        // 即時全無効化
+                        deactivateAllPromptSwitchNodes(app);
                         actionTaken = true;
-
                     } else {
                         // Aキー単独: 選択ノードのトグル
                         textWidget.value = toggleAllPrompts(textWidget.value);
@@ -967,17 +886,13 @@ app.registerExtension({
                 }
                 
                 else if (e.key === 'r' || e.key === 'R') {
-                    if (CONFIG.ENABLE_R_KEY_RESET) {
-                        textWidget.value = resetAllWeights(textWidget.value);
-                        actionTaken = true;
-                    }
+                    textWidget.value = resetAllWeights(textWidget.value);
+                    actionTaken = true;
                 }
                 
                 // V/Shift+V: Visible/Invisible トグル
                 else if (e.key === 'v' || e.key === 'V') {
-                    
                     if (e.shiftKey) { // Shift+V: 全ノード一括トグル
-                        
                         const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
                         if (promptNodes.length === 0) return true;
 
@@ -1002,9 +917,7 @@ app.registerExtension({
                             }
                         }
                         actionTaken = true;
-                        
                     } else { // Vキー単独: 選択ノードのトグル
-                        
                         if (!this.isEditMode) {
                             this.isCompactMode = !this.isCompactMode;
                             
@@ -1021,32 +934,24 @@ app.registerExtension({
                     }
                 }
                 
-                else if (e.key === 'F2' || e.key === 'e' || e.key === 'E') {
+                else if (e.key === 'F2' || e.key === 'E' || e.key === 'e') {
                     toggleEditMode(this, textWidget);
                     actionTaken = true;
                 }
                 
                 else if (e.key === 'F1') {
-                    
-                    const confirmationStatus = CONFIG.ENABLE_SHIFT_A_CONFIRMATION ? "（確認あり）" : "（確認なし/即時実行）";
-                    
                     const coreHelpLines = [
-                        `PromptSwitch ${CONFIG.FIXED_ID} - 主要なショートカット`,
+                        `PromptSwitch - 主要なショートカット`,
                         `----------------------------------------`,
                         `F1    : このヘルプを表示`,
                         `F2/E  : 編集モード切替 (ノードの枠のDblClickでも可)`,
                         `A     : All Prompts (選択ノードの全消し優先トグル切替)`,
-                        `Shift+A: 全ノードを一括で全無効化 ${confirmationStatus}`, 
+                        `Shift+A: 全ノードを一括で全無効化`, 
                         `      (除外タグ: /a, /av, /va)`,
                         `R     : 全てのウェイトをリセット (1.0)`,
                         `V     : Visible/Invisible (選択ノードのトグル切替)`,
                         `Shift+V: 全てのノードをVisible/Invisibleで一括トグル切替`,
                         `      (除外タグ: /v, /av, /va)`,
-                        ``,
-                        `[設定]`,
-                        `Shift+Aの確認: index.js内のCONFIG.ENABLE_SHIFT_A_CONFIRMATIONで制御されます。`, 
-                        `バージョン表記: index.js内のCONFIG.ENABLE_VERSION_TEXTで制御されます。`,
-                        `Rキー機能のON/OFFは、index.js内のCONFIG.ENABLE_R_KEY_RESETで制御されます。`,
                         ``,
                         `[操作]`,
                         `・行のクリック: プロンプトのON/OFF切替`,
@@ -1096,7 +1001,6 @@ app.registerExtension({
             const textWidget = findTextWidget(this);
 
             if (textWidget) {
-                
                 if (this.size[0] < CONFIG.minNodeWidth) {
                     this.size[0] = CONFIG.minNodeWidth;
                 }
@@ -1104,47 +1008,17 @@ app.registerExtension({
                 this.isCompactMode = false;
                 this.originalHeight = this.size[1];
 
-                if (!textWidget.value || textWidget.value.trim() === '' || textWidget.value.trim().indexOf(CONFIG.FIXED_ID) === -1) {
-                    
-                    let containsOldVersion = false;
-                    const oldVersionRegex = /^\s*\/\/\s*#?\d+\s*PromptSwitch.*?\s*-\s*\(F2\/DblClick to Edit\)\s*\n*/gm;
-                    let currentValue = textWidget.value || "";
-                    
-                    if (currentValue.match(oldVersionRegex)) {
-                        currentValue = currentValue.replace(oldVersionRegex, '').trimStart();
-                        containsOldVersion = true;
-                    }
-                    
-                    let newContent = currentValue;
-                    
-                    // ENABLE_VERSION_TEXT が true の場合のみバージョンコメントを追加
-                    if (CONFIG.ENABLE_VERSION_TEXT) {
-                        if (!newContent.startsWith(CONFIG.VERSION_COMMENT_TEXT.trim())) {
-                            newContent = CONFIG.VERSION_COMMENT_TEXT + "\n" + newContent;
-                        }
-                    } else {
-                        // バージョン表記が不要な場合、もし残っていれば削除（新しいノードには残らない）
-                        newContent = newContent.replace(new RegExp(`^${CONFIG.VERSION_COMMENT_TEXT.trim()}\\n?`), '').trimStart();
-                    }
-                    
-                    if (newContent.trim() === "") {
-                        // バージョン非表示設定でも空行を描画できるように、最低限の改行を確保
-                        textWidget.value = CONFIG.ENABLE_VERSION_TEXT ? CONFIG.VERSION_COMMENT_TEXT + "\n\n" : "\n\n";
-                    } else {
-                        textWidget.value = newContent;
-                    }
-
-
-                    if (textWidget.callback) {
-                        textWidget.callback(textWidget.value);
-                    }
+                // テキストエリアを常に空で初期化
+                textWidget.value = "";
+                
+                if (textWidget.callback) {
+                    textWidget.callback(textWidget.value);
                 }
                 
                 this.isEditMode = false;
                 textWidget.y = CONFIG.topNodePadding;
                 textWidget.options.minHeight = this.size[1] - textWidget.y - 10;
                 textWidget.hidden = true;
-
 
                 const forceHide = (node) => {
                     if (!node.isEditMode) {
@@ -1176,39 +1050,30 @@ app.registerExtension({
                 
                 const originalOnDblClick = this.onDblClick;
                 this.onDblClick = function(e, pos) {
-                    if (CONFIG.ENABLE_DBLCLICK_TOGGLE) {
-                        
-                        const [x, y] = pos;
-                        if (y < CONFIG.headerHeight) {
-                            if (originalOnDblClick) {
-                                return originalOnDblClick.apply(this, arguments);
-                            }
-                            return true;
+                    const [x, y] = pos;
+                    if (y < CONFIG.headerHeight) {
+                        if (originalOnDblClick) {
+                            return originalOnDblClick.apply(this, arguments);
                         }
-                        const clickedArea = this.findClickedArea(pos);
-                        
-                        if (clickedArea) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return true;
-                        }
-
-                        if (!clickedArea && y >= CONFIG.headerHeight) {
-                             toggleEditMode(this, textWidget);
-                             e.preventDefault();
-                             e.stopPropagation();
-                             return true;
-                        }
-                        
+                        return true;
+                    }
+                    const clickedArea = this.findClickedArea(pos);
+                    
+                    if (clickedArea) {
                         e.preventDefault();
                         e.stopPropagation();
                         return true;
-                        
-                    } else {
-                             if (originalOnDblClick) {
-                                 return originalOnDblClick.apply(this, arguments);
-                                }
                     }
+
+                    if (!clickedArea && y >= CONFIG.headerHeight) {
+                        toggleEditMode(this, textWidget);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return true;
+                    }
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
                     return true;
                 };
 
@@ -1245,5 +1110,4 @@ app.registerExtension({
             }
         };
     }
-
 });

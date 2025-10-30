@@ -208,4 +208,4 @@ Prompt Paletteのテキストエディター機能は、プロンプト編集に
 
 このプロジェクトは、オリジナルと同じく **MITライセンス**の下で公開されています。
 
-詳細はリポジ
+詳細はリポジトリ内の [`LICENSE`ファイル](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) をご確認ください。

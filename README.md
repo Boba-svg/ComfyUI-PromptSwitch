@@ -1,213 +1,213 @@
-# ComfyUI-PromptSwitch ✨ プロンプト作業を劇的に高速化！✨
+# ComfyUI-PromptSwitch ✨ Dramatically Speed Up Your Prompt Workflow! ✨
 
-**プロンプトのON/OFF切り替えやウェイト調整**を、まるでチェックリストのように直感的に行えるカスタムノードです。
-
-***
-
-🎉 Git Hubで公開された「PromptSwitch」へようこそ！
-
-これは、**Prompt Palette の優れたアイデア**をベースに、**プロンプト管理とノード操作の快適さ**を追求して大幅に改善したバージョンです。
-
-このノードには、以下のマークを使用し、機能の起源を区別しています。
-
-* **⚡️ [Original]**: Prompt Paletteから受け継いだ、核となる基本的な機能
-* **🆕 [Switch]**: PromptSwitchで独自に追加・改善された機能
+**Intuitive switching of prompt ON/OFF states and weight adjustment**, achievable as easily as checking off a list.
 
 ***
 
-## 🚀 PromptSwitch の主な機能
+🎉 Welcome to "PromptSwitch" published on GitHub!
 
-このカスタムノードのすごいところは、プロンプトの各行を独立して操作できる点、そして細かいカスタマイズができる点にあります。
+This version is based on the **excellent ideas of Prompt Palette** and has been significantly improved to pursue **comfort in prompt management and node operation**.
 
-### 機能説明と操作イメージ 🎮
+This node uses the following marks to distinguish the origin of the features:
 
-![機能説明](images/setsumei.png)
-![機能説明](images/sample.png)
-
-
-### 1. 超直感的！インタラクティブなプロンプト管理
-
-ノードが非編集モードのとき、プロンプトの各行が「チェックリスト」のように表示されます。
-
-* **⚡️ [Original] 行のON/OFF切り替え（活性化/コメントアウト）** 🟢/⚫
-    * ノード内のテキスト行を**クリック**するだけで、そのプロンプトを瞬時に有効化/無効化できます。試行錯誤が超スムーズに！
-* **⚡️ [Original] プロンプトウェイトの微調整が簡単！** ⚖️
-    * 各行の右にある **`[+]` / `[-]` ボタン**をクリックするだけで、ウェイトを **`CONFIG.WEIGHT_STEP` (デフォルト 0.10)** 単位でサクサク増減できます。ウェイト値はボタンの隣に表示されます。
-* **⚡️ [Original] 編集モード（Edit Mode）でも機能が有効** ✏️
-    * **編集モードのまま**、通常のプロンプト入力ノードとして機能し続けます。編集と実行をシームレスに行き来できます。
-* **🆕 [Switch] 空行に区切り線（Separator Line）を描画** ✅
-    * プロンプトブロックの視認性を高めるため、**空行**に対して細い横線が自動で描画されます。（オリジナルのちょっとした不満点を解消！）
-* **🆕 [Switch] 表示がとにかく見やすい！視覚的な大改善** 👀
-    * **テキストの自動省略**：行の文字数が多すぎる場合、ノードの見た目が崩れないように自動的に省略表示されます。
-    * **コメントの見やすさ調整**：コメントアウトされた行（`//` で始まる行）について、以下の視覚的な調整が可能です。
-        * **コメント記号 `//` は非表示になります**。
-        * コメントの色や**フォントサイズを最適化**し、メインのプロンプトがより際立つように調整されています。
-
-### 2. ノードのモード切り替え
-
-* **✏️ 編集モード（Edit Mode）**
-    * **`F2`** または **`E` キー**、または **ノード本体の左・下・右枠をダブルクリック**で、通常のテキスト入力エリアを表示/非表示に切り替えられます。
-* **🆕 [Switch] ミニマムモード（Visible/Invisible）**
-    * **`V` キー**で、選択中のノードの表示を切り替え！
-        * **通常モード（展開）**: 全ての行を表示し、プロンプト編集に集中できます。
-        * **コンパクトモード（最小化）**: 無効な行を非表示にして、ノードの高さを最小限に抑えます。キャンバスを広く使いたい時に便利！
+* **⚡️ [Original]**: Core basic functions inherited from Prompt Palette.
+* **🆕 [Switch]**: Features uniquely added or improved in PromptSwitch.
 
 ***
 
-## 🚀 爆速作業のためのショートカット機能 💨
+## 🚀 Main Features of PromptSwitch
 
-作業のスピードアップを目的とした、強力なキーボードショートカットを提供します。（**注: これらは全てPromptSwitchで独自に追加・強化された機能です！**）
+The great thing about this custom node is that each line of the prompt can be operated independently, and it allows for fine-grained customization.
 
-> ⚠️ **画像に関する注意**: 上部の機能説明画像は古いバージョンに基づいています。特にRキーの機能は、このセクションに記載されている**ランダムピックアップ機能**に更新されています。
+### Feature Description and Operation Image 🎮
 
-| ショートカット | 機能 | 説明 |
+![Feature Description](images/setsumei.png)
+![Feature Description](images/sample.png)
+
+
+### 1. Super Intuitive! Interactive Prompt Management
+
+When the node is in non-edit mode, each line of the prompt is displayed like a "checklist."
+
+* **⚡️ [Original] Line ON/OFF Switching (Activation/Commenting Out)** 🟢/⚫
+    * Simply **click** a text line within the node to instantly enable/disable that prompt. Experimentation becomes super smooth!
+* **⚡️ [Original] Easy Prompt Weight Fine-Tuning!** ⚖️
+    * By clicking the **`[+]` / `[-]` buttons** on the right of each line, you can quickly increase or decrease the weight in increments of **`CONFIG.WEIGHT_STEP` (default 0.10)**. The weight value is displayed next to the button.
+* **⚡️ [Original] Functions Remain Active in Edit Mode** ✏️
+    * It continues to function as a normal prompt input node **while in Edit Mode**. You can move seamlessly between editing and execution.
+* **🆕 [Switch] Drawing Separator Lines for Blank Lines** ✅
+    * A thin horizontal line is automatically drawn for **blank lines** to enhance the visibility of prompt blocks. (Resolves a minor frustration from the original!)
+* **🆕 [Switch] Greatly Improved Visuals for Readability** 👀
+    * **Automatic Text Truncation**: If a line has too many characters, it will be automatically truncated to prevent the node's appearance from being ruined.
+    * **Comment Readability Adjustment**: For commented-out lines (lines starting with `//`), the following visual adjustments are possible:
+        * **The comment marker `//` is hidden**.
+        * The comment color and **font size are optimized** to make the main prompt stand out more.
+
+### 2. Node Mode Switching
+
+* **✏️ Edit Mode**
+    * Switch the regular text input area **ON/OFF** by pressing **`F2`** or the **`E` key**, or by **double-clicking the left, bottom, or right border** of the node itself.
+* **🆕 [Switch] Minimum Mode (Visible/Invisible)**
+    * Toggle the display of the selected node using the **`V` key**!
+        * **Normal Mode (Expanded)**: Displays all lines, allowing you to focus on prompt editing.
+        * **Compact Mode (Minimized)**: Hides disabled lines, minimizing the node's height. Useful when you want more space on the canvas!
+
+***
+
+## 🚀 Shortcut Functions for Lightning-Fast Workflow 💨
+
+We provide powerful keyboard shortcuts aimed at speeding up your work. (**Note: These are all features uniquely added or enhanced in PromptSwitch!**)
+
+> ⚠️ **Image Note**: The feature description images at the top are based on an older version. Specifically, the function of the R key has been updated to the **Random Pickup feature** described in this section.
+
+| Shortcut | Function | Description |
 | :--- | :--- | :--- |
-| **A** | **まとめてON/OFF** | 選択中のノードの**全てのプロンプト行**を一括でON/OFF切り替え（トグル）！ |
-| **Shift + A** | **全ノード強制無効化** 🚨 | **キャンバス上の全てのPromptSwitchノード**のプロンプトを、一括で**強制的にコメントアウト**します。**【除外タグ: `/a`】** |
-| **V** | **コンパクトモード切替** | 選択中のノードの**無効なプロンプト行**の表示/非表示（コンパクト ⇔ 通常）を切り替え！ |
-| **Shift + V** | **全ノード表示モード一括変更** | **キャンバス上の全PromptSwitchノード**の表示を、一括で**コンパクト ⇔ 通常**に切り替え！**【除外タグ: `/v`】** |
-| **W** | **ウェイト一発リセット** | 選択中のノード内の**全てのウェイト**を、一括で **`1.0`** にリセット（括弧を削除）します。|
-| **R** | **ランダムピックアップ** ✨ | 選択中のノード内のプロンプトを、**空行で区切られたセクション**からランダムで有効化します。**タグ指定により有効化数が可変**します。|
-| **Shift + R** | **全ノードランダムピックアップ** 🎲 | **キャンバス上の全PromptSwitchノード**に対して、上記のランダムピックアップを一括実行します。**【除外タグ: `/r`】**|
-| **F1** | **ヘルプを表示** | このノードの主要なショートカット一覧と、**除外タグのルール**をすぐに確認できます。|
+| **A** | **Batch ON/OFF** | Toggles **ALL prompt lines** in the selected node ON/OFF (toggle)! |
+| **Shift + A** | **Force Disable All Nodes** 🚨 | **Forcibly comments out** the prompts of **ALL PromptSwitch nodes** on the canvas in one go! **【Exclusion Tag: `/a`】** |
+| **V** | **Toggle Compact Mode** | Toggles the display of **disabled prompt lines** (Compact $\Leftrightarrow$ Normal) for the selected node! |
+| **Shift + V** | **Batch Change Display Mode for All Nodes** | Toggles the display of **ALL PromptSwitch nodes** on the canvas between **Compact $\Leftrightarrow$ Normal** in one go! **【Exclusion Tag: `/v`】** |
+| **W** | **One-Click Weight Reset** | Resets the **weights of ALL** lines in the selected node **at once to `1.0`** (removes parentheses).|
+| **R** | **Random Pickup** ✨ | Randomly enables prompts from **sections separated by blank lines** within the selected node. **The number of enabled prompts is variable based on tags**.|
+| **Shift + R** | **Batch Random Pickup for All Nodes** 🎲 | Executes the Random Pickup described above **in batch** for **ALL PromptSwitch nodes** on the canvas. **【Exclusion Tag: `/r`】**|
+| **F1** | **Display Help** | Instantly shows a list of this node's main shortcuts and the **rules for exclusion tags**. |
 
-> **📌 除外タグのルールとランダムピックアップ機能拡張 【重要】**
-> * 一括操作からノードを除外したい場合や、ランダムピックアップの挙動を変更したい場合は、**ノードタイトルの末尾**に以下のタグを付けてください。
-> * **`/a`**: `Shift+A` の一括無効化から除外。
-> * **`/v`**: `Shift+V` の一括表示切替から除外。
-> * **`/r`**: `Shift+R` の一括ランダムピックアップから除外。（**バイパス/ミュートノードも除外**されます）
-> * **`/R[数]`**: **Rキー単体および Shift+R の機能**の動作を変更します。空行で区切られた各セクションから有効化する要素の数を制御します。
-> * **`/avR0-3`** のように、複数のタグを組み合わせて指定することも可能です。
+> **📌 Exclusion Tag Rules and Random Pickup Feature Expansion [Important]**
+> * If you want to exclude a node from batch operations or change the behavior of Random Pickup, append the following tag to the **end of the node title**.
+> * **`/a`**: Exclude from the batch disable operation (`Shift+A`).
+> * **`/v`**: Exclude from the batch display toggle (`Shift+V`).
+> * **`/r`**: Exclude from the batch random pickup (`Shift+R`). (Bypassed/muted nodes are also excluded)
+> * **`/R[number]`**: Modifies the behavior of the **R key alone and the Shift+R function**. Controls the number of elements enabled from each section separated by blank lines.
+> * Multiple tags can be specified, such as **`/avR0-3`**.
 >
-> **【ランダムピックアップ数制御 (`/R[数]`) の詳細】**
-> | タグの形式 | 有効化する要素の数 | 例と動作 |
+> **【Random Pickup Count Control (`/R[number]`) Details】**
+> | Tag Format | Number of Elements to Enable | Example and Behavior |
 > | :--- | :--- | :--- |
-> | **`/R[n]`** | **ちょうど $n$ 個** | `/R2` $\rightarrow$ ちょうど**2個**の要素を有効化。 |
-> | **`/R[n]-[m]`** | **$n$ から $m$ 個** | `/R0-3` $\rightarrow$ **0個から3個**をランダムで有効化。 |
-> | **`/R-[m]`** | **1から $m$ 個** | `/R-4` $\rightarrow$ **1個から4個**をランダムで有効化。 |
-> | **`/R[m]-[n]`** | **$n$ から $m$ 個** | `/R4-1` $\rightarrow$ **1個から4個**をランダムで有効化。（大小順は考慮しない） |
+> | **`/R[n]`** | **Exactly $n$ items** | `/R2` $\rightarrow$ Enables **exactly 2** elements. |
+> | **`/R[n]-[m]`** | **From $n$ to $m$ items** | `/R0-3` $\rightarrow$ Randomly enables **from 0 to 3** items. |
+> | **`/R-[m]`** | **From 1 to $m$ items** | `/R-4` $\rightarrow$ Randomly enables **from 1 to 4** items. |
+> | **`/R[m]-[n]`** | **From $n$ to $m$ items** | `/R4-1` $\rightarrow$ Randomly enables **from 1 to 4** items. (Order of min/max is not strictly enforced) |
 
 ***
 
-## ⚡️ [Original] プロンプト管理をテキストエディターで出来る事による強力な応用性
+## ⚡️ [Original] Powerful Applications from Prompt Management via Text Editor
 
-Prompt Paletteのテキストエディター機能は、プロンプト編集に強力な応用性をもたらします。その一部をご紹介します。
+The text editor functionality of Prompt Palette brings powerful possibilities to prompt editing. Here are some examples.
 
-### 1. 他の方の作ったプロンプトの導入のしやすさ
+### 1. Ease of Importing Prompts Created by Others
 
-プロンプトをコピー後、別途エディターで「カンマ」を「カンマ＋改行文字」に置換して本ノードに貼り付けると、**即座にすべての要素がリスト化**されます。
+After copying a prompt, if you replace "commas" with "comma + newline character" in a separate editor and paste it into this node, **all elements will be instantly listed**.
 
-### 2. プロンプト紹介サイト＋チャットAIを活用する活用法
+### 2. Using Prompt Sharing Sites + Chat AI
 
-プロンプト紹介サイトやチャットAIを活用することで、労せずに強力なプロンプトリストを入手し、再検索の手間を省くことができます。
+By utilizing prompt sharing sites or a chat AI, you can obtain powerful prompt lists effortlessly, saving you the trouble of searching again and again.
 
-1.  チャットAIの入力画面にまず、以下の指示文を打ちます。（エンターはまだ押さないで）
-    ```
-    こちらの中のプロンプトとそれに対するコメントを「プロンプト // コメント」という形で抽出してほしい。カテゴリが変わったら空白行を入れて、一回のコピーボタンですむようにまとめて。
-    ```
-2.  そしてプロンプト紹介サイトの内容を `Ctrl + A` → `Ctrl + C` でコピーし、上記の入力のあとに貼り付けをしてエンター。
-3.  チャットAIは「プロンプト // コメント」の形でそのページのプロンプトをリスト化し、コピーボタンまで用意してくれるでしょう。
-4.  それをPromptSwitchに貼り付ければ、**即強力なプロンプトリストを入手**でき、忘れるたびにプロンプト紹介サイトを検索する手間から逃れることができます。
+1.  First, type the following instruction into the chat AI's input field (but do not press Enter yet):
+    ```
+    I want you to extract the prompts and their corresponding comments from the text below in the format "prompt // comment". Add a blank line when the category changes, and consolidate everything so it can be copied with a single click.
+    ```
+2.  Then, copy the content from the prompt sharing site using `Ctrl + A` $\rightarrow$ `Ctrl + C`, paste it after the above instruction, and press Enter.
+3.  The chat AI should list the prompts from the page in the "prompt // comment" format and even provide a copy button.
+4.  Paste this into PromptSwitch, and you will **instantly get a powerful prompt list**, saving you the effort of searching prompt sites every time you forget something.
 
 ***
 
-## 🔧 カスタマイズ大歓迎！設定変数リスト
+## 🔧 Greatly Welcomed Customization! Configuration Variable List
 
-`web/index.js` の `CONFIG` オブジェクトを直接編集することで、ノードの細かい振る舞いを調整できます。
+You can adjust the fine behavior of the node by directly editing the `CONFIG` object in `web/index.js`.
 
-| 変数名 | デフォルト値 | 説明 |
+| Variable Name | Default Value | Description |
 | :--- | :--- | :--- |
-| `WEIGHT_STEP` | `0.10` | ウェイト増減ボタン (`[+]`/`[-]`) で増減する単位量を設定します。|
-| `minWeight` | `-1.0` | 最小ウェイト値を設定します。 |
-| `maxWeight` | `2.0` | 最大ウェイト値を設定します。 |
-| `COMMENT_FONT_SCALE` | `0.8` | コメント行のフォントサイズを、プロンプトのフォントサイズに対する比率で指定します。 |
-| `PROMPT_MAX_LENGTH_DISPLAY` | `30` | ノード表示時に省略せずに表示するプロンプトの最大文字数を指定します。 |
-| `COLOR_PROMPT_ON` | `"#FFF"` | 有効なプロンプトのテキスト色。 |
-| `COLOR_COMMENT_ON` | `"#ADD8E6"` | 有効なプロンプトに付随するコメントのテキスト色。 |
-| `COLOR_PROMPT_OFF` | `"#AAAAAA"` | 無効なプロンプト（コメントアウトされた行）のテキスト色。 |
-| `COLOR_COMMENT_OFF` | `"#AAAAAA"` | 無効なプロンプトに付随するコメントのテキスト色。 |
+| `WEIGHT_STEP` | `0.10` | Sets the increment/decrement unit for the weight adjustment buttons (`[+]`/`[-]`).|
+| `minWeight` | `-1.0` | Sets the minimum weight value. |
+| `maxWeight` | `2.0` | Sets the maximum weight value. |
+| `COMMENT_FONT_SCALE` | `0.8` | Specifies the font size of comment lines as a ratio to the main prompt's font size. |
+| `PROMPT_MAX_LENGTH_DISPLAY` | `30` | Specifies the maximum number of characters to display without truncation when the node is shown. |
+| `COLOR_PROMPT_ON` | `"#FFF"` | Text color for enabled prompts. |
+| `COLOR_COMMENT_ON` | `"#ADD8E6"` | Text color for comments associated with enabled prompts. |
+| `COLOR_PROMPT_OFF` | `"#AAAAAA"` | Text color for disabled prompts (commented-out lines). |
+| `COLOR_COMMENT_OFF` | `"#AAAAAA"` | Text color for comments associated with disabled prompts. |
 
-> ⚠️ **注意**: `web/index.js` のコードを元に、存在しない設定項目（`ENABLE_SHIFT_A_CONFIRMATION`、`ENABLE_R_KEY_RESET`、`ENABLE_DBLCLICK_TOGGLE`、`COMMENT_COLOR`、`COMMENT_FONT_SIZE`）は削除し、実際の変数名（`WEIGHT_STEP`、`minWeight`、`maxWeight`、`COMMENT_FONT_SCALE`、`PROMPT_MAX_LENGTH_DISPLAY`、カラーコード）に合わせて調整しました。
-
-***
-
-## 🛠️ インストールとアップデート方法
-
-現在、**ComfyUI Managerへの登録準備中**です！それまでは、以下のGitコマンドを使った手動での管理をお願いします🙇‍♂️。
-
-### 1. 手動インストール手順 (Git Clone)
-
-1.  ComfyUIがインストールされているフォルダ内の **`custom_nodes` フォルダ**へ移動します。
-
-    ```bash
-    cd /path/to/ComfyUI/custom_nodes
-    ```
-
-2.  以下のコマンドでリポジトリをクローン（ダウンロード）します。
-
-    ```bash
-    git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git
-    ```
-
-3.  ComfyUIを再起動すれば完了です！
-
-### 2. アップデート手順 (Git Pull) 🆕
-
-最新の機能や修正を取り込む際は、以下の手順を実行してください。
-
-1.  ComfyUIのプロセスを完全に終了します。
-2.  ComfyUIがインストールされているフォルダ内の **`custom_nodes` フォルダ**へ移動します。
-3.  `ComfyUI-PromptSwitch` フォルダへ移動します。
-
-    ```bash
-    cd /path/to/ComfyUI/custom_nodes/ComfyUI-PromptSwitch
-    ```
-
-4.  以下のコマンドで最新の変更を取得します。
-
-    ```bash
-    git pull
-    ```
-    （※もしファイルの上書きに関するエラーが出た場合は、一時ファイルを削除するか、`git reset --hard` でローカルの変更を破棄してください。）
-
-5.  ComfyUIを再起動すればアップデート完了です！
+> ⚠️ **Note**: Based on the `web/index.js` code, non-existent configuration items (`ENABLE_SHIFT_A_CONFIRMATION`, `ENABLE_R_KEY_RESET`, `ENABLE_DBLCLICK_TOGGLE`, `COMMENT_COLOR`, `COMMENT_FONT_SIZE`) have been removed, and the settings have been adjusted to match the actual variable names (`WEIGHT_STEP`, `minWeight`, `maxWeight`, `COMMENT_FONT_SCALE`, `PROMPT_MAX_LENGTH_DISPLAY`, color codes).
 
 ***
 
-## 💡 使用方法
+## 🛠️ Installation and Update Instructions
 
-1.  ノード検索メニュー（右クリックまたは`Ctrl + Space`）から、**ユーティリティ（utils）**カテゴリなどからノードを呼び出します。
-2.  ノードにフォーカスを合わせて**`F1`キー**を押すと、ノードの詳細なヘルプが表示されます。
+Currently, **preparation for registration in the ComfyUI Manager is underway!** Until then, please manage the installation manually using the following Git commands. 🙇‍♂️
+
+### 1. Manual Installation Procedure (Git Clone)
+
+1.  Navigate to the **`custom_nodes` folder** within your ComfyUI installation directory.
+
+    ```bash
+    cd /path/to/ComfyUI/custom_nodes
+    ```
+
+2.  Clone (download) the repository using the following command.
+
+    ```bash
+    git clone [https://github.com/Boba-svg/ComfyUI-PromptSwitch.git](https://github.com/Boba-svg/ComfyUI-PromptSwitch.git)
+    ```
+
+3.  Restart ComfyUI, and you are done!
+
+### 2. Update Procedure (Git Pull) 🆕
+
+To incorporate the latest features and fixes, follow these steps:
+
+1.  Completely shut down the ComfyUI process.
+2.  Navigate to the **`custom_nodes` folder** within your ComfyUI installation directory.
+3.  Navigate into the `ComfyUI-PromptSwitch` folder.
+
+    ```bash
+    cd /path/to/ComfyUI/custom_nodes/ComfyUI-PromptSwitch
+    ```
+
+4.  Fetch the latest changes using the following command.
+
+    ```bash
+    git pull
+    ```
+    (If you encounter errors about overwriting files, try deleting temporary files or using `git reset --hard` to discard local changes.)
+
+5.  Restart ComfyUI to complete the update!
 
 ***
-## 💡 アップデート履歴
-1.  25/10/16 公開
-2.  25/10/17 **末尾タグによる除外機能追加**：Shift+A (`/a`) / Shift+V (`/v`) の一括操作から特定のノードを除外する機能を追加。シンプル化のため、ノードタイトル先頭の `※` や `-` による除外機能は削除されました。
-3.  25/10/20 weightを戻したときに実データにウエイト表記が残ってしまうのを修正
-4.  25/10/20 weightの操作時にカンマのあるパターン、カンマのないパターンで動きを統一
-5.  25/10/20 機能のオンオフを操作するフラグ関連の処理を全部撤廃
-6.  25/10/30 **Rキーをランダムピックアップに変更**：Rキー単独で選択ノードのランダムピックアップ、Shift+Rで全ノードの一括ランダムピックアップを導入。既存のウェイトリセット機能は**Wキー**に移動。
-7.  25/10/30 **ランダムピックアップの拡張機能を追加**：ノードタイトルの末尾に `/R[数]` タグを指定することで、ランダム有効化する要素の数を複数・範囲指定できるように変更。
+
+## 💡 Usage
+
+1.  In the node search menu (right-click or `Ctrl + Space`), call up the node from the **Utilities (utils)** category or similar.
+2.  Focus on the node and press **`F1`** to display the node's detailed help.
+
+***
+## 💡 Update History
+1.  25/10/16 Initial Release
+2.  25/10/17 **Added Exclusion Feature via Suffix Tags**: Added functionality to exclude specific nodes from batch operations like Shift+A (`/a`) / Shift+V (`/v`). Exclusion features using `※` or `-` at the start of the node title were removed for simplification.
+3.  25/10/20 Fixed an issue where weight notation remained in the actual data when weights were reverted.
+4.  25/10/20 Standardized the behavior for patterns with commas and those without when manipulating weights.
+5.  25/10/20 Removed all processing related to feature ON/OFF flags.
+6.  25/10/30 **R Key changed to Random Pickup**: Introduced Random Pickup for the selected node with the R key alone, and batch Random Pickup for all nodes with Shift+R. The existing weight reset function was moved to the **W key**.
+7.  25/10/30 **Random Pickup Extension Added**: Changed to allow specifying the number of elements to randomly enable by appending the tag `/R[number]` to the node title, enabling single or range specification.
 
 ***
 
-## 💡 次の更新予定
-1.  空白行のみの場合は改行文字もプロンプトに入れない
-2.  プロンプトの繋ぎ、およびプロンプトの最後に改行を入れないモードを用意する　⇒　出力プロンプトを綺麗にしたい人むけ　（自分は今の方が視認性がよくて好き）
-3.  シフト＋Eで全てのノードをエディットモードで開くを導入　⇒　ブラウザの検索機能に引っかかるようになる
-4.  複数の末尾タグが存在するとランダム機能がデフォルト動作しないバグを確認しているのでそれの修正。
+## 💡 Next Update Plans
+1.  Do not include newline characters in the prompt if the line is just a blank line.
+2.  Prepare a mode to omit newlines at the connection points and at the end of the prompt $\Rightarrow$ For those who want a cleaner output prompt. (I currently prefer the better visibility).
+3.  Introduce a feature to open all nodes in Edit Mode with Shift + E $\Rightarrow$ This will make them catchable by the browser's search function.
+4.  Fix a bug where the random function defaults not to work when multiple suffix tags are present.
 ***
 
-## 🌟 クレジット (Credit) / 感謝！ 🙏
+## 🌟 Credits / Thanks! 🙏
 
-このカスタムノード（ComfyUI-PromptSwitch）は、**kambara**氏によって開発された優れたプロジェクト [`ComfyUI-PromptPalette`](https://github.com/kambara/ComfyUI-PromptPalette) のアイデアをフォークし、大幅に機能拡張したものです。
+This custom node (ComfyUI-PromptSwitch) is a significantly enhanced fork based on the excellent project [`ComfyUI-PromptPalette`](https://github.com/kambara/ComfyUI-PromptPalette) developed by **kambara**.
 
-オリジナルの作者とプロジェクトに心から感謝いたします。
+Heartfelt thanks to the original author and project.
 
 ***
 
-## 📝 ライセンス
+## 📝 License
 
-このプロジェクトは、オリジナルと同じく **MITライセンス**の下で公開されています。
+This project, like its original, is released under the **MIT License**.
 
-詳細はリポジトリ内の [`LICENSE`ファイル](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) をご確認ください。
+Please refer to the [`LICENSE` file](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) in the repository for details.

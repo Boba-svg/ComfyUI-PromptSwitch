@@ -12,6 +12,7 @@
 // ・isNodeExcluded: /R<N>と /r, /ar のような複合タグの両方で小文字の除外キー 'r' が機能するように修正。
 // ・getRTagSelectionRange: ノードタイトル末尾からRタグの個数指定を正しく分離抽出するように修正。
 // ・【追加修正】Shift+R で /R3 などの大文字R指定ノードが除外されないよう、isNodeExcluded で大文字Rの数値部分を無視して小文字rのみを除外判定に使用
+// ・【追加修正】複合タグ /R1-3a でも Shift+R が機能するよう、isNodeExcluded で大文字Rの範囲指定後に続く小文字 'a' などを除外判定から除外
 import { app } from "../../scripts/app.js";
 const CONFIG = {
     // UIの描画設定
@@ -76,6 +77,7 @@ function isNodeExcluded(node, keys) {
    
     // 除外タグ全体を小文字化 (例: 'r2', 'av', 'R3a' -> 'r2', 'av', 'r3a')
     const tagString = tagMatch[1].toLowerCase();
+    const originalTag = tagMatch[1]; // 元の文字列（大文字小文字そのまま）
    
     // 【修正点】: 指定されたキーのいずれかがタグ文字列に含まれていれば除外
     for (const key of keys) {
@@ -84,13 +86,11 @@ function isNodeExcluded(node, keys) {
         // 'r' を含むかどうかで除外判定を行う。
         if (key === 'r') {
              // 'r' がタグ文字列に含まれているか（/r, /ar, /r3a など）
-             // ただし、個数指定タグの一部としての大文字 'R' は機能の有効化であるため、
-             // 'r' を含むかどうかで除外判定を行う。
              if (tagString.includes('r')) {
-                 // 追加判定: タグが 'R' で始まる数値指定 (/R3, /R2-4 など) の場合は除外しない
-                 const originalTag = tagMatch[1];
-                 if (/^R(\d*-?\d*)$/.test(originalTag)) {
-                     continue; // 大文字R + 数値/範囲 → 除外判定しない
+                 // 追加判定: タグが 'R' で始まり、数字とハイフンのみで構成される範囲指定 (/R3, /R2-4, /R-3 など) の場合は除外しない
+                 // ただし /R1-3a のように末尾に 'a' などが続く場合は、R部分は有効だが 'a' による除外は別途判定
+                 if (/^R[\d-]*$/.test(originalTag)) {
+                     continue; // 純粋な /R3, /R1-3, /R-3 → 除外判定しない
                  }
                  return true;
              }

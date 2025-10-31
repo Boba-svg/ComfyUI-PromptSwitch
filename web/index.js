@@ -13,6 +13,7 @@
 // ・getRTagSelectionRange: ノードタイトル末尾からRタグの個数指定を正しく分離抽出するように修正。
 // ・【追加修正】Shift+R で /R3 などの大文字R指定ノードが除外されないよう、isNodeExcluded で大文字Rの数値部分を無視して小文字rのみを除外判定に使用
 // ・【追加修正】複合タグ /R1-3a でも Shift+R が機能するよう、isNodeExcluded で大文字Rの範囲指定後に続く小文字 'a' などを除外判定から除外
+// ・【追加修正】複合タグ /R2a でも Shift+R が正しく機能するよう、isNodeExcluded で大文字Rの個数指定部分を正確に分離し、残りの文字で除外判定を行う
 import { app } from "../../scripts/app.js";
 const CONFIG = {
     // UIの描画設定
@@ -58,8 +59,7 @@ function findTextWidget(node) {
 /**
  * ノードタイトルが指定された除外キーに該当するかどうかを判定する
  * 除外キーはノードタイトルの末尾に /key の形式で指定されている必要がある
- * (例: Shift+A除外は isNodeExcluded(node, ['a']), Shift+V除外は isNodeExcluded(node, ['v']) )
- * 複合指定も可能 (例: /av, /va)
+ * 複合指定も可能 (例: /av, /va, /R2a)
  * @param {object} node - 対象のノードオブジェクト
  * @param {string[]} keys - 判定したい除外キーの配列 (例: ['a'], ['v'], ['r'])
  * @returns {boolean} - 除外対象であれば true
@@ -69,36 +69,29 @@ function isNodeExcluded(node, keys) {
     const trimmedTitle = node.title.trim();
    
     // ノードタイトルから最後の '/tag' 部分を抽出
-    // 末尾の / で始まり、英数字とハイフンで終わる部分を抽出 (大文字・小文字を無視)
     const tagMatch = trimmedTitle.match(/\/([a-z0-9\-]+)$/i);
     if (!tagMatch) {
         return false;
     }
    
-    // 除外タグ全体を小文字化 (例: 'r2', 'av', 'R3a' -> 'r2', 'av', 'r3a')
-    const tagString = tagMatch[1].toLowerCase();
-    const originalTag = tagMatch[1]; // 元の文字列（大文字小文字そのまま）
+    const originalTag = tagMatch[1]; // 元のタグ文字列 (R2a, r, R1-3a など)
+    const tagString = originalTag.toLowerCase();
    
-    // 【修正点】: 指定されたキーのいずれかがタグ文字列に含まれていれば除外
+    // Rタグの個数指定部分を抽出（/R2a → R2, /R1-3a → R1-3）
+    const rTagMatch = originalTag.match(/^R([\d-]*)/);
+    let rTagPrefix = '';
+    if (rTagMatch) {
+        rTagPrefix = rTagMatch[0]; // R2, R1-3 など
+    }
+   
+    // Rタグ部分を除いた残りの文字列（/R2a → a）
+    const remainingTag = originalTag.substring(rTagPrefix.length);
+    const remainingTagLower = remainingTag.toLowerCase();
+   
+    // 除外判定: 残りの文字列にキーが含まれるか
     for (const key of keys) {
-        // 例: key='r' の場合、タグ文字列 'r3a' や 'r' に 'r' が含まれていれば true
-        // ただし、個数指定タグの一部としての大文字 'R' は機能の有効化であるため、
-        // 'r' を含むかどうかで除外判定を行う。
-        if (key === 'r') {
-             // 'r' がタグ文字列に含まれているか（/r, /ar, /r3a など）
-             if (tagString.includes('r')) {
-                 // 追加判定: タグが 'R' で始まり、数字とハイフンのみで構成される範囲指定 (/R3, /R2-4, /R-3 など) の場合は除外しない
-                 // ただし /R1-3a のように末尾に 'a' などが続く場合は、R部分は有効だが 'a' による除外は別途判定
-                 if (/^R[\d-]*$/.test(originalTag)) {
-                     continue; // 純粋な /R3, /R1-3, /R-3 → 除外判定しない
-                 }
-                 return true;
-             }
-        } else {
-             // 'a' や 'v' など、他の除外キーのチェック
-             if (tagString.includes(key.toLowerCase())) {
-                 return true;
-             }
+        if (remainingTagLower.includes(key.toLowerCase())) {
+            return true;
         }
     }
    
@@ -374,44 +367,37 @@ function getRTagSelectionRange(node) {
     if (!node.title) return [1, 1]; // デフォルト: 1個選択
     const trimmedTitle = node.title.trim();
    
-    // 【修正点】: 大文字 'R' で始まる個数指定タグのみを末尾から抽出
-    // /R<Min>-<Max> または /R<N> または /R-<Max> の形式を抽出
-    // Rの後に続くのは数字、ハイフン、数字（オプション）
-    const tagMatch = trimmedTitle.match(/\/R(\d*\-?\d+)$/);
-   
+    // 末尾の /R... 部分を抽出（/R2a → R2a）
+    const tagMatch = trimmedTitle.match(/\/R([\d-]*)/i);
     if (!tagMatch) {
-        return [1, 1]; // タグなし、または /r のみ、または /R のみ -> 1個選択
+        return [1, 1];
     }
    
-    const tagValue = tagMatch[1]; // 例: '2', '0-2', '-3'
+    const rTagValue = tagMatch[1]; // 2, 1-3, -3 など
+    if (rTagValue === '') {
+        return [1, 1];
+    }
    
-    if (tagValue.includes('-')) {
-        // 範囲指定: <Min>-<Max> または -<Max>
-        const parts = tagValue.split('-');
+    if (rTagValue.includes('-')) {
+        const parts = rTagValue.split('-');
         let min = parseInt(parts[0]);
         let max = parseInt(parts[1]);
        
         if (parts[0] === '' && parts.length === 2) {
-            // -<Max> の形式 (例: -3) -> 1〜Max
             min = 1;
         } else if (parts.length !== 2 || isNaN(min) || isNaN(max) || min > max) {
-            // 不正な形式 (例: 3-1, 1-a, 3- など)
             return [1, 1];
         }
-        // Min/Maxが負の値なら不正として扱う
         if (min < 0 || max < 0) {
             return [1, 1];
         }
         return [min, max];
-       
     } else {
-        // 個数指定: <N> の形式
-        const count = parseInt(tagValue);
+        const count = parseInt(rTagValue);
         if (isNaN(count) || count < 0) {
-            return [1, 1]; // 不正な形式または負の数 -> 1個選択
+            return [1, 1];
         }
-       
-        return [count, count]; // N個選択
+        return [count, count];
     }
 }
 /**
@@ -697,9 +683,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     } else {
         let beforeText = trimLine.substring(0, firstCommentIndex).trim();
         let afterComment = trimLine.substring(firstCommentIndex + 2);
-       
-        // 修正点: コンマを剥がすロジックは削除 (stripOuterParentesesAndWeightLocalに任せる)
-        // beforeText = beforeText.replace(/[\s,]+$/, '');
        
         [beforeText, weight] = stripOuterParenthesesAndWeightLocal(beforeText);
        

@@ -1,213 +1,211 @@
 # ComfyUI-PromptSwitch ✨ Dramatically Speed Up Your Prompt Workflow! ✨
 
-**Intuitive switching of prompt ON/OFF states and weight adjustment**, achievable as easily as checking off a list.
+A custom node that allows you to **toggle prompts ON/OFF and adjust weights** as intuitively as a checklist.
 
 ***
 
-🎉 Welcome to "PromptSwitch" published on GitHub!
+🎉 Welcome to **PromptSwitch** on GitHub!
 
-This version is based on the **excellent ideas of Prompt Palette** and has been significantly improved to pursue **comfort in prompt management and node operation**.
+This project builds upon the **brilliant concept of Prompt Palette**, focusing on **comfort and efficiency in prompt management and node operation**, with major enhancements.
 
-This node uses the following marks to distinguish the origin of the features:
+This node uses the following marks to distinguish the origin of each feature:
 
-* **⚡️ [Original]**: Core basic functions inherited from Prompt Palette.
-* **🆕 [Switch]**: Features uniquely added or improved in PromptSwitch.
+* **⚡️ [Original]**: Core functions inherited from Prompt Palette  
+* **🆕 [Switch]**: Newly added or improved features unique to PromptSwitch
 
 ***
 
 ## 🚀 Main Features of PromptSwitch
 
-The great thing about this custom node is that each line of the prompt can be operated independently, and it allows for fine-grained customization.
+The greatest strength of this custom node lies in its ability to operate each prompt line independently, along with detailed customization options.
 
-### Feature Description and Operation Image 🎮
+### Feature Overview and Operation 🎮
 
-![Feature Description](images/setsumei.png)
-![Feature Description](images/sample.png)
-
+![Feature Overview](images/setsumei.png)  
+![Sample](images/sample.png)
 
 ### 1. Super Intuitive! Interactive Prompt Management
 
-When the node is in non-edit mode, each line of the prompt is displayed like a "checklist."
+When the node is in non-edit mode, each line of the prompt appears like a checklist.
 
-* **⚡️ [Original] Line ON/OFF Switching (Activation/Commenting Out)** 🟢/⚫
-    * Simply **click** a text line within the node to instantly enable/disable that prompt. Experimentation becomes super smooth!
-* **⚡️ [Original] Easy Prompt Weight Fine-Tuning!** ⚖️
-    * By clicking the **`[+]` / `[-]` buttons** on the right of each line, you can quickly increase or decrease the weight in increments of **`CONFIG.WEIGHT_STEP` (default 0.10)**. The weight value is displayed next to the button.
-* **⚡️ [Original] Functions Remain Active in Edit Mode** ✏️
-    * It continues to function as a normal prompt input node **while in Edit Mode**. You can move seamlessly between editing and execution.
-* **🆕 [Switch] Drawing Separator Lines for Blank Lines** ✅
-    * A thin horizontal line is automatically drawn for **blank lines** to enhance the visibility of prompt blocks. (Resolves a minor frustration from the original!)
-* **🆕 [Switch] Greatly Improved Visuals for Readability** 👀
-    * **Automatic Text Truncation**: If a line has too many characters, it will be automatically truncated to prevent the node's appearance from being ruined.
-    * **Comment Readability Adjustment**: For commented-out lines (lines starting with `//`), the following visual adjustments are possible:
-        * **The comment marker `//` is hidden**.
-        * The comment color and **font size are optimized** to make the main prompt stand out more.
+* **⚡️ [Original] Toggle Lines ON/OFF (Activate / Comment Out)** 🟢/⚫  
+    * Simply **click on a line** to instantly enable or disable that prompt. Experimenting becomes super smooth!
+* **⚡️ [Original] Easy Fine-Tuning of Prompt Weights** ⚖️  
+    * Click the **`[+]` / `[-]` buttons** on the right of each line to adjust weights in increments of **`CONFIG.WEIGHT_STEP` (default 0.10)**. The current weight is shown beside the buttons.
+* **⚡️ [Original] Functions Remain Active in Edit Mode** ✏️  
+    * While in **Edit Mode**, the node still behaves like a normal prompt input node, allowing seamless switching between editing and execution.
+* **🆕 [Switch] Separator Lines for Empty Rows** ✅  
+    * Thin horizontal lines are automatically drawn for **empty lines** to visually separate prompt blocks for better readability.
+* **🆕 [Switch] Major Visual Improvements for Readability** 👀  
+    * **Auto Text Truncation**: Long lines are automatically shortened to prevent layout breaking.  
+    * **Improved Comment Visibility**: Lines starting with `//` are treated as comments with enhanced visibility:
+        * **`//` symbols are hidden**
+        * Comment **font size and color** are optimized to make active prompts stand out.
 
 ### 2. Node Mode Switching
 
 * **✏️ Edit Mode**
-    * Switch the regular text input area **ON/OFF** by pressing **`F2`** or the **`E` key**, or by **double-clicking the left, bottom, or right border** of the node itself.
-* **🆕 [Switch] Minimum Mode (Visible/Invisible)**
-    * Toggle the display of the selected node using the **`V` key**!
-        * **Normal Mode (Expanded)**: Displays all lines, allowing you to focus on prompt editing.
-        * **Compact Mode (Minimized)**: Hides disabled lines, minimizing the node's height. Useful when you want more space on the canvas!
+    * Toggle visibility of the text input area using **`F2`**, **`E` key**, or **double-clicking the node’s border** (left, bottom, or right).
+* **🆕 [Switch] Minimal Mode (Visible/Invisible)**
+    * Toggle **compact display** with the **`V` key**:
+        * **Normal Mode (Expanded)**: Displays all lines for full prompt editing.
+        * **Compact Mode (Minimized)**: Hides inactive lines to save canvas space.
 
 ***
 
-## 🚀 Shortcut Functions for Lightning-Fast Workflow 💨
+## 🚀 Shortcuts for Blazing Fast Workflow 💨
 
-We provide powerful keyboard shortcuts aimed at speeding up your work. (**Note: These are all features uniquely added or enhanced in PromptSwitch!**)
+A set of powerful keyboard shortcuts designed for productivity.  
+(*All of the following are unique enhancements introduced in PromptSwitch!*)
 
-> ⚠️ **Image Note**: The feature description images at the top are based on an older version. Specifically, the function of the R key has been updated to the **Random Pickup feature** described in this section.
+> ⚠️ **Note**: The images above may reference older versions. The **R key** has been updated to the **Random Pickup feature** described below.
 
 | Shortcut | Function | Description |
 | :--- | :--- | :--- |
-| **A** | **Batch ON/OFF** | Toggles **ALL prompt lines** in the selected node ON/OFF (toggle)! |
-| **Shift + A** | **Force Disable All Nodes** 🚨 | **Forcibly comments out** the prompts of **ALL PromptSwitch nodes** on the canvas in one go! **【Exclusion Tag: `/a`】** |
-| **V** | **Toggle Compact Mode** | Toggles the display of **disabled prompt lines** (Compact $\Leftrightarrow$ Normal) for the selected node! |
-| **Shift + V** | **Batch Change Display Mode for All Nodes** | Toggles the display of **ALL PromptSwitch nodes** on the canvas between **Compact $\Leftrightarrow$ Normal** in one go! **【Exclusion Tag: `/v`】** |
-| **W** | **One-Click Weight Reset** | Resets the **weights of ALL** lines in the selected node **at once to `1.0`** (removes parentheses).|
-| **R** | **Random Pickup** ✨ | Randomly enables prompts from **sections separated by blank lines** within the selected node. **The number of enabled prompts is variable based on tags**.|
-| **Shift + R** | **Batch Random Pickup for All Nodes** 🎲 | Executes the Random Pickup described above **in batch** for **ALL PromptSwitch nodes** on the canvas. **【Exclusion Tag: `/r`】**|
-| **F1** | **Display Help** | Instantly shows a list of this node's main shortcuts and the **rules for exclusion tags**. |
+| **A** | **Toggle All ON/OFF** | Toggles all prompt lines in the selected node at once. |
+| **Shift + A** | **Force Disable All Nodes** 🚨 | Comments out all prompts in **every PromptSwitch node** on the canvas. **[Exclude Tag: `/a`]** |
+| **V** | **Toggle Compact Mode** | Hides or shows disabled lines in the selected node. |
+| **Shift + V** | **Toggle Compact Mode for All Nodes** | Switches between compact/normal view for all nodes. **[Exclude Tag: `/v`]** |
+| **W** | **Reset All Weights** | Resets all weights in the selected node to **`1.0`** (removes parentheses). |
+| **R** | **Random Pickup** ✨ | Randomly activates prompts within sections separated by blank lines. Controlled by tags in the node title. |
+| **Shift + R** | **Global Random Pickup** 🎲 | Executes the above random pickup for all nodes. **[Exclude Tag: `/r`]** |
+| **F1** | **Show Help** | Displays key shortcuts and exclusion tag rules for this node. |
 
-> **📌 Exclusion Tag Rules and Random Pickup Feature Expansion [Important]**
-> * If you want to exclude a node from batch operations or change the behavior of Random Pickup, append the following tag to the **end of the node title**.
-> * **`/a`**: Exclude from the batch disable operation (`Shift+A`).
-> * **`/v`**: Exclude from the batch display toggle (`Shift+V`).
-> * **`/r`**: Exclude from the batch random pickup (`Shift+R`). (Bypassed/muted nodes are also excluded)
-> * **`/R[number]`**: Modifies the behavior of the **R key alone and the Shift+R function**. Controls the number of elements enabled from each section separated by blank lines.
-> * Multiple tags can be specified, such as **`/avR0-3`**.
->
-> **【Random Pickup Count Control (`/R[number]`) Details】**
-> | Tag Format | Number of Elements to Enable | Example and Behavior |
+> **📌 Exclusion Tag Rules & Random Pickup Extensions [Important]**
+> * Add tags at the **end of the node title** to exclude it from batch operations or modify random behavior.
+> * **`/a`**: Exclude from `Shift+A` batch disable.
+> * **`/v`**: Exclude from `Shift+V` batch visibility toggle.
+> * **`/r`**: Exclude from `Shift+R` global random pickup. (Bypassed/muted nodes also excluded)
+> * **`/R[n]`**: Controls the number of active items per random section for both `R` and `Shift+R`.
+> * You can combine multiple tags, e.g. **`/avR0-3`**.
+
+> **Details for Random Pickup Count Control (`/R[n]`)**
+> | Tag Format | Number of Active Elements | Example & Behavior |
 > | :--- | :--- | :--- |
-> | **`/R[n]`** | **Exactly $n$ items** | `/R2` $\rightarrow$ Enables **exactly 2** elements. |
-> | **`/R[n]-[m]`** | **From $n$ to $m$ items** | `/R0-3` $\rightarrow$ Randomly enables **from 0 to 3** items. |
-> | **`/R-[m]`** | **From 1 to $m$ items** | `/R-4` $\rightarrow$ Randomly enables **from 1 to 4** items. |
-> | **`/R[m]-[n]`** | **From $n$ to $m$ items** | `/R4-1` $\rightarrow$ Randomly enables **from 1 to 4** items. (Order of min/max is not strictly enforced) |
+> | **`/R[n]`** | **Exactly $n$ elements** | `/R2` → Activates exactly **2 elements**. |
+> | **`/R[n]-[m]`** | **Between $n$ and $m$ elements** | `/R0-3` → Activates **0 to 3** elements randomly. |
+> | **`/R-[m]`** | **1 to $m$ elements** | `/R-4` → Activates **1 to 4** elements randomly. |
+> | **`/R[m]-[n]`** | **Between $n$ and $m$ elements** | `/R4-1` → Same as `/R1-4` (order ignored). |
 
 ***
 
-## ⚡️ [Original] Powerful Applications from Prompt Management via Text Editor
+## ⚡️ [Original] Power of Text-Based Prompt Management
 
-The text editor functionality of Prompt Palette brings powerful possibilities to prompt editing. Here are some examples.
+Prompt Palette’s text editor foundation enables powerful customization and flexibility in prompt editing.
 
-### 1. Ease of Importing Prompts Created by Others
+### 1. Easy Import of Shared Prompts
 
-After copying a prompt, if you replace "commas" with "comma + newline character" in a separate editor and paste it into this node, **all elements will be instantly listed**.
+After copying a prompt, use a text editor to replace commas with “comma + newline” before pasting into this node — instantly converting them into a **line-based prompt list**.
 
-### 2. Using Prompt Sharing Sites + Chat AI
+### 2. Using Prompt Websites + Chat AI
 
-By utilizing prompt sharing sites or a chat AI, you can obtain powerful prompt lists effortlessly, saving you the trouble of searching again and again.
+You can use Chat AI and prompt sharing websites to easily compile strong prompt lists and avoid repetitive searching.
 
-1.  First, type the following instruction into the chat AI's input field (but do not press Enter yet):
-    ```
-    I want you to extract the prompts and their corresponding comments from the text below in the format "prompt // comment". Add a blank line when the category changes, and consolidate everything so it can be copied with a single click.
-    ```
-2.  Then, copy the content from the prompt sharing site using `Ctrl + A` $\rightarrow$ `Ctrl + C`, paste it after the above instruction, and press Enter.
-3.  The chat AI should list the prompts from the page in the "prompt // comment" format and even provide a copy button.
-4.  Paste this into PromptSwitch, and you will **instantly get a powerful prompt list**, saving you the effort of searching prompt sites every time you forget something.
+1.  In your Chat AI, first enter the following (don’t press Enter yet):
+    ```
+    Please extract the prompts and their comments in the format "Prompt // Comment". Insert a blank line between categories, and format it so it can be copied all at once.
+    ```
+2.  Copy (`Ctrl + A`, `Ctrl + C`) a prompt-sharing webpage’s text and paste it after the above input.
+3.  The AI will output a formatted list like “Prompt // Comment” with a one-click copy button.
+4.  Paste that list into PromptSwitch to get an **instant ready-to-use prompt set**, avoiding the need to revisit websites.
 
 ***
 
-## 🔧 Greatly Welcomed Customization! Configuration Variable List
+## 🔧 Customization Options
 
-You can adjust the fine behavior of the node by directly editing the `CONFIG` object in `web/index.js`.
+You can tweak the behavior by editing the `CONFIG` object in `web/index.js`.
 
-| Variable Name | Default Value | Description |
+| Variable | Default | Description |
 | :--- | :--- | :--- |
-| `WEIGHT_STEP` | `0.10` | Sets the increment/decrement unit for the weight adjustment buttons (`[+]`/`[-]`).|
-| `minWeight` | `-1.0` | Sets the minimum weight value. |
-| `maxWeight` | `2.0` | Sets the maximum weight value. |
-| `COMMENT_FONT_SCALE` | `0.8` | Specifies the font size of comment lines as a ratio to the main prompt's font size. |
-| `PROMPT_MAX_LENGTH_DISPLAY` | `30` | Specifies the maximum number of characters to display without truncation when the node is shown. |
-| `COLOR_PROMPT_ON` | `"#FFF"` | Text color for enabled prompts. |
-| `COLOR_COMMENT_ON` | `"#ADD8E6"` | Text color for comments associated with enabled prompts. |
-| `COLOR_PROMPT_OFF` | `"#AAAAAA"` | Text color for disabled prompts (commented-out lines). |
-| `COLOR_COMMENT_OFF` | `"#AAAAAA"` | Text color for comments associated with disabled prompts. |
+| `WEIGHT_STEP` | `0.10` | Weight adjustment step for `[+]`/`[-]` buttons. |
+| `minWeight` | `-1.0` | Minimum weight limit. |
+| `maxWeight` | `2.0` | Maximum weight limit. |
+| `COMMENT_FONT_SCALE` | `0.8` | Font size ratio for comment lines relative to prompt lines. |
+| `PROMPT_MAX_LENGTH_DISPLAY` | `30` | Max characters displayed before truncation. |
+| `COLOR_PROMPT_ON` | `"#FFF"` | Color for active prompts. |
+| `COLOR_COMMENT_ON` | `"#ADD8E6"` | Color for comments attached to active prompts. |
+| `COLOR_PROMPT_OFF` | `"#AAAAAA"` | Color for inactive (commented) prompts. |
+| `COLOR_COMMENT_OFF` | `"#AAAAAA"` | Color for comments attached to inactive prompts. |
 
-> ⚠️ **Note**: Based on the `web/index.js` code, non-existent configuration items (`ENABLE_SHIFT_A_CONFIRMATION`, `ENABLE_R_KEY_RESET`, `ENABLE_DBLCLICK_TOGGLE`, `COMMENT_COLOR`, `COMMENT_FONT_SIZE`) have been removed, and the settings have been adjusted to match the actual variable names (`WEIGHT_STEP`, `minWeight`, `maxWeight`, `COMMENT_FONT_SCALE`, `PROMPT_MAX_LENGTH_DISPLAY`, color codes).
-
-***
-
-## 🛠️ Installation and Update Instructions
-
-Currently, **preparation for registration in the ComfyUI Manager is underway!** Until then, please manage the installation manually using the following Git commands. 🙇‍♂️
-
-### 1. Manual Installation Procedure (Git Clone)
-
-1.  Navigate to the **`custom_nodes` folder** within your ComfyUI installation directory.
-
-    ```bash
-    cd /path/to/ComfyUI/custom_nodes
-    ```
-
-2.  Clone (download) the repository using the following command.
-
-    ```bash
-    git clone [https://github.com/Boba-svg/ComfyUI-PromptSwitch.git](https://github.com/Boba-svg/ComfyUI-PromptSwitch.git)
-    ```
-
-3.  Restart ComfyUI, and you are done!
-
-### 2. Update Procedure (Git Pull) 🆕
-
-To incorporate the latest features and fixes, follow these steps:
-
-1.  Completely shut down the ComfyUI process.
-2.  Navigate to the **`custom_nodes` folder** within your ComfyUI installation directory.
-3.  Navigate into the `ComfyUI-PromptSwitch` folder.
-
-    ```bash
-    cd /path/to/ComfyUI/custom_nodes/ComfyUI-PromptSwitch
-    ```
-
-4.  Fetch the latest changes using the following command.
-
-    ```bash
-    git pull
-    ```
-    (If you encounter errors about overwriting files, try deleting temporary files or using `git reset --hard` to discard local changes.)
-
-5.  Restart ComfyUI to complete the update!
+> ⚠️ **Note**: Removed unused options (`ENABLE_SHIFT_A_CONFIRMATION`, `ENABLE_R_KEY_RESET`, `ENABLE_DBLCLICK_TOGGLE`, `COMMENT_COLOR`, `COMMENT_FONT_SIZE`) and matched variable names to the actual implementation.
 
 ***
 
-## 💡 Usage
+## 🛠️ Installation & Update
 
-1.  In the node search menu (right-click or `Ctrl + Space`), call up the node from the **Utilities (utils)** category or similar.
-2.  Focus on the node and press **`F1`** to display the node's detailed help.
+Currently **pending registration for ComfyUI Manager**.  
+Until then, please manage manually using the Git commands below.
+
+### 1. Manual Installation (Git Clone)
+
+1.  Navigate to your ComfyUI installation’s **`custom_nodes`** folder:
+    ```bash
+    cd /path/to/ComfyUI/custom_nodes
+    ```
+2.  Clone the repository:
+    ```bash
+    git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git
+    ```
+3.  Restart ComfyUI — done!
+
+### 2. Update (Git Pull) 🆕
+
+To get the latest features or fixes:
+
+1.  Completely close ComfyUI.  
+2.  Navigate to the **`custom_nodes`** folder.  
+3.  Enter the `ComfyUI-PromptSwitch` directory:
+    ```bash
+    cd /path/to/ComfyUI/custom_nodes/ComfyUI-PromptSwitch
+    ```
+4.  Pull the latest changes:
+    ```bash
+    git pull
+    ```
+    If you encounter overwrite errors, delete temporary files or reset with:
+    ```bash
+    git reset --hard
+    ```
+5.  Restart ComfyUI — update complete!
 
 ***
+
+## 💡 How to Use
+
+1.  Open the node menu (right-click or `Ctrl + Space`) and locate the node under **utils**.  
+2.  Press **`F1`** while the node is selected to display detailed help and shortcuts.
+
+***
+
 ## 💡 Update History
-1.  25/10/16 Initial Release
-2.  25/10/17 **Added Exclusion Feature via Suffix Tags**: Added functionality to exclude specific nodes from batch operations like Shift+A (`/a`) / Shift+V (`/v`). Exclusion features using `※` or `-` at the start of the node title were removed for simplification.
-3.  25/10/20 Fixed an issue where weight notation remained in the actual data when weights were reverted.
-4.  25/10/20 Standardized the behavior for patterns with commas and those without when manipulating weights.
-5.  25/10/20 Removed all processing related to feature ON/OFF flags.
-6.  25/10/30 **R Key changed to Random Pickup**: Introduced Random Pickup for the selected node with the R key alone, and batch Random Pickup for all nodes with Shift+R. The existing weight reset function was moved to the **W key**.
-7.  25/10/30 **Random Pickup Extension Added**: Changed to allow specifying the number of elements to randomly enable by appending the tag `/R[number]` to the node title, enabling single or range specification.
+1.  25/10/16 Initial release  
+2.  25/10/17 Added exclusion tags (`/a`, `/v`) for batch operations; removed older exclusion methods.  
+3.  25/10/20 Fixed issue where weight markers remained after reset.  
+4.  25/10/20 Unified behavior of weight operations (with/without commas).  
+5.  25/10/20 Removed all unnecessary flag toggling logic.  
+6.  25/10/30 **R key → Random Pickup**: Added R/Shift+R random selection; moved weight reset to **W key**.  
+7.  25/10/30 **Extended Random Pickup**: Added `/R[n]` tags to specify number/range of random activations.
 
 ***
 
-## 💡 Next Update Plans
-1.  Do not include newline characters in the prompt if the line is just a blank line.
-2.  Prepare a mode to omit newlines at the connection points and at the end of the prompt $\Rightarrow$ For those who want a cleaner output prompt. (I currently prefer the better visibility).
-3.  Introduce a feature to open all nodes in Edit Mode with Shift + E $\Rightarrow$ This will make them catchable by the browser's search function.
-4.  Fix a bug where the random function defaults not to work when multiple suffix tags are present.
+## 💡 Upcoming Features
+1.  Exclude newline characters for empty prompt lines.  
+2.  Option to disable trailing line breaks for clean output formatting.  
+3.  Add **Shift+E** to open all nodes in edit mode (for browser search support).  
+4.  Fix bug preventing random behavior when multiple tags exist in node title.
+
 ***
 
-## 🌟 Credits / Thanks! 🙏
+## 🌟 Credit & Thanks 🙏
 
-This custom node (ComfyUI-PromptSwitch) is a significantly enhanced fork based on the excellent project [`ComfyUI-PromptPalette`](https://github.com/kambara/ComfyUI-PromptPalette) developed by **kambara**.
-
-Heartfelt thanks to the original author and project.
+This project, **ComfyUI-PromptSwitch**, is an extended and enhanced version of  
+[`ComfyUI-PromptPalette`](https://github.com/kambara/ComfyUI-PromptPalette)  
+originally developed by **kambara**.  
+Huge thanks to the original author and their brilliant work!
 
 ***
 
 ## 📝 License
 
-This project, like its original, is released under the **MIT License**.
-
-Please refer to the [`LICENSE` file](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) in the repository for details.
+This project is released under the **MIT License**, same as the original.  
+See the [`LICENSE`](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/LICENSE) file for details.

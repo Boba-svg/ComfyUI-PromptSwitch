@@ -1,6 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch #2895
+// PromptSwitch #2898
 // カンマの扱いを統一性のあるもの修正
 // 改造内容：
 // ・Rキーをランダムピックアップ（単一/Shift+Rで全ノード）に置き換え

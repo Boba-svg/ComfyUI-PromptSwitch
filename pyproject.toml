@@ -35,7 +35,7 @@ PublisherId = "boba-svg"
 
 # 推奨: Managerのリストに表示される、ユーザーフレンドリーな名前。
 # 日本語でも構いませんが、英字名が推奨されます。
-DisplayName = "Prompt Switch" 
+DisplayName = "Comfyui-PromptSwitch" 
 
 # (オプション) ノードが特定のサブディレクトリにある場合に指定します。
 # 通常はルートにあるため、不要です。

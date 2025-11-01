@@ -1,6 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch #2899
+// PromptSwitch #2890
 // カンマの扱いを統一性のあるもの修正
 // 改造内容：
 // ・Rキーをランダムピックアップ（単一/Shift+Rで全ノード）に置き換え
@@ -1154,7 +1154,7 @@ app.registerExtension({
                
                 setupClickHandler(this, textWidget, app);
                
-                setTimeout(() => { forceHide(this); }, 100);
+                setTimeout(() => { forceHide(this); }, 200);
                
                 const originalOnAdded = this.onAdded;
                 this.onAdded = function() {

@@ -31,7 +31,7 @@ Repository = "https://github.com/Boba-svg/ComfyUI-PromptSwitch"
 
 # 必須: あなたのGitHubユーザー名またはユニークな識別子。
 # Managerはこれを使ってノードの場所を特定します。
-PublisherId = "Boba-svg" 
+PublisherId = "boba-svg" 
 
 # 推奨: Managerのリストに表示される、ユーザーフレンドリーな名前。
 # 日本語でも構いませんが、英字名が推奨されます。

@@ -7,8 +7,8 @@
 🎉 Git Hubで公開された「PromptSwitch」へようこそ！
 
 これは、**Prompt Palette の優れたアイデア**をベースに、**プロンプト管理とノード操作の快適さ**を追求して大幅に改善したバージョンです。
-日本語の [`README`ファイル](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md) はここ。
 
+日本語の [`README`ファイル](https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md) はここ。
 
 このノードには、以下のマークを使用し、機能の起源を区別しています。
 

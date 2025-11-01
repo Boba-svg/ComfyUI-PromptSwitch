@@ -1,0 +1,653 @@
+{
+  "id": "c9e26313-22b2-450f-a9c3-b0f4f6e0a425",
+  "revision": 0,
+  "last_node_id": 16,
+  "last_link_id": 15,
+  "nodes": [
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [
+        413,
+        389
+      ],
+      "size": [
+        425.27801513671875,
+        180.6060791015625
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "text, watermark"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [
+        1209,
+        188
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 7
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "SaveImage",
+      "pos": [
+        1451,
+        189
+      ],
+      "size": [
+        254.673828125,
+        270
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        457.3959045410156,
+        224.248779296875
+      ],
+      "size": [
+        342.24945068359375,
+        88
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PromptSwitch",
+      "pos": [
+        -151.64886474609375,
+        107.97145080566406
+      ],
+      "size": [
+        383.42730712890625,
+        320
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prefix",
+          "shape": 7,
+          "type": "STRING",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "title": "背景 /R1",
+      "properties": {
+        "aux_id": "Boba-svg/ComfyUI-PromptSwitch",
+        "ver": "991f070594d6cdf7a1721c94f7005f07627798b0",
+        "Node name for S&R": "PromptSwitch"
+      },
+      "widgets_values": [
+        "// (green grassy plain:1.3), vast plains, rolling hills, bright sunlight, open sky, overworld map // 平原 (フィールド)\n// (arid desert:1.3), endless sand dunes, heat haze, blazing sun, dry environment, cracked earth // 砂漠\n// (inside a dark cave:1.2), rocky walls, damp and cool, dripping water, faint light source, dangerous path // 洞窟\n// (climbing a stone tower:1.2), ancient stone architecture, high altitude, strong wind, view of the land below // 塔\n// (inside a grand pyramid:1.3), ancient Egyptian style, sandstone walls, hieroglyphs, tombs, treasure room // ピラミッド\n// (vast ocean:1.1), sailing ship, deep blue sea, calm waves, open horizon, clear day // 大海原\n// (volcanic area:1.2), flowing lava, smoke and ash, dark red rock, extreme heat, dangerous ground // 火山 (ネクロゴンド火山など)\n// (frozen snowfield:1.2), thick snow cover, blizzard, ice structures, extreme cold, distant mountains // 雪原 (グリンラッド周辺)\n// (inside an old castle:1.3), stone walls, high ceilings, large hall, throne room, dramatic lighting // 城内部\n(busy marketplace:1.1), crowded street, stalls with goods, diverse people, bustling activity, lively town // 賑やかな町\n// (ancient ruins:1.2), crumbling stone pillars, overgrown with vines, mystical atmosphere, forgotten history // 遺跡\n// (inside an underground lake:1.2), crystal clear water, submerged ruins, air bubble, ethereal blue light // 地底の湖\n// (throne room of the Dark Lord:1.4), intimidating dark castle, red and black decor, menacing atmosphere, evil lair // 魔王の玉座 (ゾーマ城)\n// (Japanese-style village:1.2), wooden houses, rice paddies, shrine with torii, mist, traditional Japanese setting // ジパング\n// (oasis in the desert:1.1), palm trees, small pool of water, rest spot, relief from the heat, safe haven // オアシス (イシスなど)"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "PromptSwitch",
+      "pos": [
+        272.84210205078125,
+        -261.2564697265625
+      ],
+      "size": [
+        388.0793151855469,
+        392
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prefix",
+          "shape": 7,
+          "type": "STRING",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "title": "戦闘内容 /R1-3",
+      "properties": {
+        "aux_id": "Boba-svg/ComfyUI-PromptSwitch",
+        "ver": "991f070594d6cdf7a1721c94f7005f07627798b0",
+        "Node name for S&R": "PromptSwitch"
+      },
+      "widgets_values": [
+        "// (intense battle scene:1.3), heroes fighting monsters, dynamic action, epic fantasy combat // 激しい戦闘シーン全体\n// (casting bright magic spell:1.3), hands glowing with energy, spell effects flying, light vs dark magic // 魔法発動の瞬間\n// (sword clash:1.2), two swords meeting, sparks flying, sharp detail, close-up action // 剣戟の衝突\n// (fireball explosion:1.2), large orange fireball hitting a target, intense heat effect, wide impact // 炎の魔法攻撃\n// (hero executing a critical strike:1.2), sword raised high, glowing aura around the weapon, dramatic damage flash // 必殺剣技\n// (a party of adventurers defending:1.1), party members in defensive stances, arrows flying, shields raised // パーティの防衛\n// (lightning magic strike:1.2), bright blue lightning bolts descending from the sky, hitting enemies, high contrast // 雷魔法\n// (monsters attacking simultaneously:1.1), multiple enemies lunging at the player, sense of danger and overwhelming odds // 複数モンスターの同時攻撃\n// (healing magic aura:1.1), soft green or yellow light surrounding an ally, peaceful glow amidst chaos // 回復魔法\n// (magic particle effects:1.2), numerous small magical particles filling the air, vibrant colors, high detail // 魔法の粒子エフェクト\n// (agile dodging movement:1.1), character narrowly avoiding an attack, motion blur, high speed action // 素早い回避\n// (heavy armor warrior charging:1.2), heavily armored figure running forward, shield leading, ground shaking // 重装戦士の突進\n// (magic spell preparation:1.1), character concentrating, complex rune circle on the ground, visible buildup of power // 呪文準備中\n// (back view of a final blow:1.3), view from behind the protagonist delivering the finishing strike, dramatic angle // とどめの一撃\n// (human warrior fighting a fantasy monster:1.3), epic battle scene, dynamic action pose, magic and sword fighting, detailed illustration // 人間とモンスターの戦闘\n// (close quarters combat:1.3), hero and monster locked in struggle, weapons clashing, muscle tension, dirt and sweat // 激しい接近戦\n// (hero unleashing powerful magic:1.3), huge blast of magical energy, monster recoiling, vibrant light effects // 魔法攻撃\n(final blow:1.4), sword plunging into monster, dramatic lighting, defeated pose, decisive moment // 致命的な一撃\n(hero parrying a monster attack:1.2), shield blocking, immediate counter-attack, defensive posture // 防御と反撃"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "KSampler",
+      "pos": [
+        863,
+        186
+      ],
+      "size": [
+        315,
+        474
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        549364017870711,
+        "randomize",
+        25,
+        8,
+        "euler",
+        "normal",
+        1
+      ]
+    },
+    {
+      "id": 5,
+      "type": "EmptyLatentImage",
+      "pos": [
+        473,
+        609
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        1024,
+        768,
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        26,
+        472.8999938964844
+      ],
+      "size": [
+        315,
+        98
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            3,
+            5
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 2,
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.65",
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "waiNSFWIllustrious_v140.safetensors"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "PromptSwitch",
+      "pos": [
+        -509.439208984375,
+        106.5563735961914
+      ],
+      "size": [
+        294.78271484375,
+        320
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prefix",
+          "shape": 7,
+          "type": "STRING",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "title": "キャラクター 味方  /R2",
+      "properties": {
+        "aux_id": "Boba-svg/ComfyUI-PromptSwitch",
+        "ver": "991f070594d6cdf7a1721c94f7005f07627798b0",
+        "Node name for S&R": "PromptSwitch"
+      },
+      "widgets_values": [
+        "// (male hero:1.3), adventurer, medieval armor, sword and shield, fantasy art, detailed illustration// 男勇者\n// (female hero:1.3), adventuress, ornate armor, dynamic pose, fantasy art, detailed illustration // 女勇者\n// (male warrior:1.2), knight, heavy armor, strong build, realistic shading, epic lighting // 男戦士\n// (female warrior:1.2), battle-ready, light armor, determined expression, action pose, high detail // 女戦士\n// (male cleric:1.2), priest, religious robes, holding a holy symbol, gentle light, peaceful // 男僧侶\n// (female cleric:1.2), priestess, white and gold robes, healing magic glow, serene expression // 女僧侶\n// (male mage:1.3), wizard, flowing robes, holding a staff, casting a spell, magical energy, volumetric lighting // 男魔法使い\n(female mage:1.3), sorceress, elegant robes, glowing hands, intricate magical effects, vibrant colors // 女魔法使い\n// (male sage:1.2), wise old man, long beard, scholarly robes, holding a book, thoughtful pose // 男賢者\n// (female sage:1.2), wise woman, mystical attire, glowing eyes, ancient ruins background, intellectual // 女賢者\n// (male martial artist:1.2), monk, bare-chested, muscular, dynamic fighting stance, motion blur // 男武闘家\n// (female martial artist:1.2), female fighter, athletic build, wraps on hands, focused on combat // 女武闘家\n(male rogue:1.2), charming vagabond, flashy clothes, smirk, street background, cunning look // 男遊び人\n// (female rogue:1.2), seductive flirt, stylish outfit, playful expression, tavern setting // 女遊び人\n// (princess:1.3), royalty, elegant dress, tiara, graceful, castle interior, beautiful // お姫様"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "PromptSwitch",
+      "pos": [
+        -150.85572814941406,
+        -258.580322265625
+      ],
+      "size": [
+        329.2947998046875,
+        320
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prefix",
+          "shape": 7,
+          "type": "STRING",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "title": "敵キャラクター  /R-1",
+      "properties": {
+        "aux_id": "Boba-svg/ComfyUI-PromptSwitch",
+        "ver": "991f070594d6cdf7a1721c94f7005f07627798b0",
+        "Node name for S&R": "PromptSwitch"
+      },
+      "widgets_values": [
+        "// (slime:1.3), blue blob monster, simple design, cute, iconic enemy // スライム\n// (dragon:1.3), large western dragon, scales, fire breath, flying, fantasy monster // ドラゴン\n// (golem:1.2), large stone golem, imposing figure, rocky body, powerful, fantasy robot // ゴーレム\n// (killer machine:1.2), mechanical monster, metallic body, sharp edges, robotic enemy // キラーマシン\n(lizardman:1.1), bipedal lizard monster, holding a weapon, reptilian, fantasy creature // リザードマン\n// (wizard monster:1.1), casting a spell, eccentric robe, slightly menacing, magical foe // まほうつかい\n// (archasaurus:1.2), dinosaur monster, large reptilian, jungle setting, powerful bite // アークサウルス\n// (poison bat:1.1), giant bat monster, toxic appearance, dark cave background // どくやもり\n// (cactus monster:1.0), walking cactus, desert environment, spiky body // サボテン\n// (tentacle monster:1.2), large octopus or squid monster, many tentacles, dark water // テンツク\n// (desert ogre:1.1), large ogre, desert warrior, big club, strong build // デザートオーガ\n// (bustroll:1.2), large, hairy troll, muscular, club-wielding brute // ボストロール\n// (prison cat:1.1), cat-like monster, wearing a striped prisoner uniform, mischievous // プリズニャン\n// (gem monster:1.0), monster made of crystal or gemstone, shining, colorful // ゲモン\n// (Zoma:1.4), dark lord, supreme evil being, imposing crown, final boss armor, god of darkness // ゾーマ"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "PromptSwitch",
+      "pos": [
+        -520.7992553710938,
+        -262.2334899902344
+      ],
+      "size": [
+        328.8962707519531,
+        212
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prefix",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "title": "おまじない /ra",
+      "properties": {
+        "aux_id": "Boba-svg/ComfyUI-PromptSwitch",
+        "ver": "991f070594d6cdf7a1721c94f7005f07627798b0",
+        "Node name for S&R": "PromptSwitch"
+      },
+      "widgets_values": [
+        "masterpiece,\nbest quality,\nvery aesthetic,\n// multiple_girls, \n// multiple_boys, \n// multiple_others, \n(2human:1.10),\n(1monster:1.10),\n((human warrior fighting a fantasy monster:1.3), epic battle scene, dynamic action pose, magic and sword fighting, detailed illustration:1.10)"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      4,
+      0,
+      3,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      5,
+      0,
+      3,
+      3,
+      "LATENT"
+    ],
+    [
+      3,
+      4,
+      1,
+      6,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      6,
+      0,
+      3,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      4,
+      1,
+      7,
+      0,
+      "CLIP"
+    ],
+    [
+      6,
+      7,
+      0,
+      3,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      3,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      8,
+      4,
+      2,
+      8,
+      1,
+      "VAE"
+    ],
+    [
+      9,
+      8,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      10,
+      11,
+      0,
+      12,
+      0,
+      "STRING"
+    ],
+    [
+      11,
+      12,
+      0,
+      13,
+      0,
+      "STRING"
+    ],
+    [
+      12,
+      13,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      13,
+      14,
+      0,
+      15,
+      0,
+      "STRING"
+    ],
+    [
+      15,
+      15,
+      0,
+      6,
+      1,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9090909090909091,
+      "offset": [
+        1134.3199235233599,
+        435.5219406310651
+      ]
+    },
+    "frontendVersion": "1.27.10",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

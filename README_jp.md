@@ -20,6 +20,8 @@ https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 
 ## 主な機能
 
+![機能説明](images/setsumei.png)
+![機能説明](images/sample.png)
 各プロンプト行を独立して操作でき、カスタマイズも可能です。
 
 ### 1. インタラクティブなプロンプト管理

@@ -77,9 +77,9 @@ https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 
 1. PromptSwitchのノードのタイトルに/Rと/C を末尾を追加する 
 
-(/CタグについてはＣキーを押下すればワンキーで追加される)
+**（/CタグについてはＣキーを押下すればワンキーで追加される）
 
-（例：`顔の表情 /R0-3 /C`）  
+**（例：`顔の表情 /R0-3 /C`）  
 
 2. **「Generate」ボタンを押す**
 

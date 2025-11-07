@@ -19,11 +19,10 @@
 // ・this キャプチャで安全
 // ・描画後に hidden = true を強制
 //
-// 【/C 挙動】
-// ・生成前：初回ランダム（queuePrompt）
-// ・1枚生成完了ごと：次のランダム（onAfterExecutePrompt）
-// → 32枚生成でも1枚ごとに違うプロンプト！
-// → onExecuted → onAfterExecutePrompt に変更（確実）
+// 【/C 挙動】（2025-11-08 修正）
+// ・生成前：初回ランダム（queuePrompt）のみ
+// ・生成後（onAfterExecutePrompt）はランダム実行しない
+// → バッチ処理でも無駄な処理なし。1回だけ確実にランダム選択
 //
 // 【Cキー追加】（2025-11-07）
 // ・ノードにフォーカス時 Cキー → /C タグをトグル（末尾に追加/削除）
@@ -40,6 +39,7 @@
 // ・Shift+C：全ノードのタイトルから /C を一括削除
 
 import { app } from "../../scripts/app.js";
+
 const CONFIG = {
     // UIの描画設定
     minNodeWidth: 400,
@@ -109,16 +109,19 @@ function findTextWidget(node) {
     }
     return null;
 }
+
 function isNodeExcluded(node, keys) {
     const tags = parseNodeTags(node);
     return keys.some(key => tags.includes(key.toLowerCase()));
 }
+
 function isLineDisabled(line) {
     const trimmedLine = line.trimStart();
     const isEmpty = trimmedLine === '';
     if (isEmpty) return false;
     return trimmedLine.startsWith('//');
 }
+
 function toggleAllPrompts(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -157,6 +160,7 @@ function toggleAllPrompts(text) {
     });
     return newLines.join('\n');
 }
+
 function deactivatePromptText(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -178,6 +182,7 @@ function deactivatePromptText(text) {
     });
     return newLines.join('\n');
 }
+
 function deactivateAllPromptSwitchNodes(app) {
     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
     for (const node of promptNodes) {
@@ -212,6 +217,7 @@ function toggleEditMode(node, textWidget, forceMode = null, options = {}) {
     }
     node.setDirtyCanvas(true, true);
 }
+
 function stripOuterParenthesesAndWeight(text) {
     let currentWeight = 1.0;
     let processedText = text.trim();
@@ -232,6 +238,7 @@ function stripOuterParenthesesAndWeight(text) {
     }
     return [processedText, currentWeight, trailingComma];
 }
+
 function resetAllWeights(text) {
     const lines = text.split('\n');
     const newLines = lines.map(line => {
@@ -263,6 +270,7 @@ function resetAllWeights(text) {
     });
     return newLines.join('\n');
 }
+
 function adjustWeightInText(text, lineIndex, delta) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -302,6 +310,7 @@ function adjustWeightInText(text, lineIndex, delta) {
     lines[lineIndex] = originalLeadingSpaces + prefix + newPromptPart + commentPart;
     return lines.join('\n');
 }
+
 function toggleCommentOnLine(text, lineIndex) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -318,6 +327,7 @@ function toggleCommentOnLine(text, lineIndex) {
     }
     return lines.join('\n');
 }
+
 function getRTagSelectionRange(node) {
     const tags = parseNodeTags(node);
     const rTag = tags.find(t => t.startsWith('r'));
@@ -335,6 +345,7 @@ function getRTagSelectionRange(node) {
         return [count, count];
     }
 }
+
 function randomPickupPrompts(text, node) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -427,6 +438,7 @@ function findClickedArea(pos) {
     }
     return null;
 }
+
 function handleClickableAreaAction(area, textWidget, app) {
     if (area.type === 'checkbox' || area.type === 'text_area_suppressor') {
         textWidget.value = toggleCommentOnLine(textWidget.value, area.lineIndex);
@@ -438,6 +450,7 @@ function handleClickableAreaAction(area, textWidget, app) {
     if (textWidget.callback) textWidget.callback(textWidget.value);
     app.graph.setDirtyCanvas(true, true);
 }
+
 function setupClickHandler(node, textWidget, app) {
     node.clickableAreas = [];
     node.findClickedArea = findClickedArea;
@@ -478,6 +491,7 @@ function setupClickHandler(node, textWidget, app) {
         return true;
     };
 }
+
 function drawSeparatorLine(ctx, node, y) {
     const lineY = y + CONFIG.emptyLineHeight / 2;
     const startX = CONFIG.sideNodePadding;
@@ -489,6 +503,7 @@ function drawSeparatorLine(ctx, node, y) {
     ctx.lineTo(endX, lineY);
     ctx.stroke();
 }
+
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
@@ -558,6 +573,7 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     }
     return ["", weight, totalTextWidth];
 }
+
 function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
     const checkboxX = CONFIG.sideNodePadding;
     const checkboxY = y + (CONFIG.lineHeight - CONFIG.checkboxSize) / 2;
@@ -582,6 +598,7 @@ function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
         height: CONFIG.lineHeight,
     });
 }
+
 function drawWeightButtons(ctx, node, y, lineIndex, weight) {
     const isDefaultWeight = weight.toFixed(2) === "1.00";
     let currentX = node.size[0] - CONFIG.sideNodePadding;
@@ -640,6 +657,7 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
         });
     }
 }
+
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
     const lines = text.split('\n');
@@ -727,7 +745,6 @@ app.registerExtension({
                 const textWidget = findTextWidget(this);
                 if (!textWidget) return;
                 let actionTaken = false;
-
                 // Shift+E: 全ノード編集モードトグル
                 if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
                     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
@@ -839,20 +856,16 @@ app.registerExtension({
                             const currentTitle = node.title || "";
                             const tagMatches = [...currentTitle.matchAll(/\/([^\/\s]*)/g)];
                             if (tagMatches.length === 0) continue;
-
                             const cleanTags = tagMatches
                                 .filter(m => m[1].toLowerCase() !== 'c')
                                 .map(m => '/' + m[1]);
-
                             const nonTagParts = currentTitle.split(/\/[^\/\s]*/);
                             let baseName = nonTagParts[0].trim();
-
                             let newTitle = baseName;
                             if (cleanTags.length > 0) {
                                 if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
                                 newTitle += cleanTags.join(' ');
                             }
-
                             newTitle = newTitle.trim();
                             if (node.title !== newTitle) {
                                 node.title = newTitle;
@@ -910,7 +923,7 @@ app.registerExtension({
                         `W : 全てのウェイトをリセット (1.0)`,
                         `V : Visible/Invisible (選択ノードのトグル)`,
                         `Shift+V: 全ノード一括トグル (除外: /v)`,
-                        `C : /C タグのトグル（タイトル末尾に追加/削除）`,
+                        `C : /C タグのトグル（生成前に自動ランダム）`,
                         `Shift+C : 全ノードから /C タグを一括削除`,
                         ``,
                         `【タグは / で区切ってください】`,
@@ -931,7 +944,6 @@ app.registerExtension({
                     }
                     actionTaken = true;
                 }
-
                 if (actionTaken) {
                     if (e.key !== 'F1') {
                         if (textWidget.callback) {
@@ -1056,11 +1068,13 @@ app.registerExtension({
 });
 
 // ===============================================
-// 初回 + 1枚ごとにランダム（queuePrompt + onAfterExecutePrompt）
+// 生成前に1回だけランダム（/C タグ）
+// onAfterExecutePrompt での再ランダムは完全に削除
 // ===============================================
 if (typeof app !== 'undefined') {
     const originalQueuePrompt = app.queuePrompt;
     app.queuePrompt = async function (...args) {
+        // 生成前に /C タグ付きノードを1回だけランダムピック
         app.graph._nodes
             .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
             .forEach(n => {
@@ -1074,23 +1088,10 @@ if (typeof app !== 'undefined') {
         app.graph.setDirtyCanvas(true, true);
         return await originalQueuePrompt.apply(this, args);
     };
+
+    // 生成後の自動ランダムは完全に無効化
     const originalAfterExec = app.onAfterExecutePrompt || function() {};
     app.onAfterExecutePrompt = function() {
-        try {
-            app.graph._nodes
-                .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
-                .forEach(n => {
-                    const w = findTextWidget(n);
-                    if (w && typeof randomPickupPrompts === 'function') {
-                        w.value = randomPickupPrompts(w.value, n);
-                        if (w.callback) w.callback(w.value);
-                        n.setDirtyCanvas(true, true);
-                    }
-                });
-            app.graph.setDirtyCanvas(true, true);
-        } catch (err) {
-            console.warn("PromptSwitch /C auto-random error:", err);
-        }
         return originalAfterExec.apply(this, arguments);
     };
 }

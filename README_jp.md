@@ -12,7 +12,7 @@ GitHubで公開された「PromptSwitch」へようこそ！
 https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 
 機能の起源を区別するために、以下のように表記しています。
-
+※こちらの画像の説明は古い内容です。
 * [Original]：Prompt Palette から受け継いだ基本機能
 * [Switch]：PromptSwitch で追加・改善された機能
 

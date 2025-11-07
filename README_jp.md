@@ -75,7 +75,7 @@ https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 
 ### 使い方（たった2ステップ）
 
-1. ノードタイトルに **`/R[数] /C`** を追加  
+1. PromptSwitchのノードのタイトルに/Rと/C を末尾を追加する (/CタグについてはＣキーを押下すればワンキーで追加される)
    （例：`顔の表情 /R0-3 /C`）  
 2. **「Generate」ボタンを押す**
 

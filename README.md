@@ -20,9 +20,9 @@ To distinguish the origin of features, we use the following notation:
 
 ## Main Features
 
+You can independently operate each prompt line and customize it.
 ![機能説明](images/setsumei.png)
 ![機能説明](images/sample.png)
-You can independently operate each prompt line and customize it.
 
 ### 1. Interactive Prompt Management
 

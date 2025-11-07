@@ -21,12 +21,21 @@
 //
 // 【/C 挙動】
 // ・生成前：初回ランダム（queuePrompt）
-// ・1枚生成完了ごと：次のランダム（onNodeExecuted）
+// ・1枚生成完了ごと：次のランダム（onAfterExecutePrompt）
 // → 32枚生成でも1枚ごとに違うプロンプト！
-// → onExecuted → onNodeExecuted に変更（確実）
-
+// → onExecuted → onAfterExecutePrompt に変更（確実）
+//
+// 【Cキー追加】（2025-11-07）
+// ・ノードにフォーカス時 Cキー → /C タグをトグル（末尾に追加/削除）
+// ・/C/r/a のような複合タグでも /C のみを正確に削除
+// ・【最終修正】/R0-2/C, /r/a/C でも完璧に動作（中間/CもOK）
+//
+// 【Shift+E 追加】（2025-11-07）
+// ・Shift+E：全ノードを編集モードに（既に編集中のものは維持）
+// ・再びShift+E：全ノードを通常モードに
+// ・【バグ修正】編集モードで開始しても元に戻るように修正
+// ・【Shift+E 文字入力完全防止】フォーカス自体をしない → カーソルも入力もゼロ
 import { app } from "../../scripts/app.js";
-
 const CONFIG = {
     // UIの描画設定
     minNodeWidth: 400,
@@ -49,51 +58,39 @@ const CONFIG = {
     COMMENT_FONT_SCALE: 0.8,
     WEIGHT_STEP: 0.10,
     PROMPT_MAX_LENGTH_DISPLAY: 30,
- 
     // カラーパレット
     COLOR_PROMPT_ON: "#FFF",
     COLOR_COMMENT_ON: "#ADD8E6",
     COLOR_PROMPT_OFF: "#AAAAAA",
     COLOR_COMMENT_OFF: "#AAAAAA",
 };
-
 // ========================================
-// 1. タグパース関数（全角スペース対応 + 複合タグ禁止 + 全タグ抽出）
+// 1. タグパース関数（スペースなし完全対応 + 中間タグ対応）
 // ========================================
 function parseNodeTags(node) {
     if (!node.title) return [];
     const trimmed = node.title.trim();
-
-    // すべての /tag を抽出（スペースや改行は含まない）
-    const tagMatches = [...trimmed.matchAll(/\/([^\s\/]+)/g)];
+    // /で始まるすべてのタグを正確に抽出（スペースの有無問わず）
+    const tagMatches = [...trimmed.matchAll(/\/([^\/\s]*)/g)];
     if (tagMatches.length === 0) return [];
-
     const rawTags = tagMatches.map(m => m[1]);
-
-    // 全角スペース・タブ・改行を半角スペースに変換 → 統一
+    // 正規化（全角スペースなど）
     const normalizedTags = rawTags.map(tag =>
-        tag
-            .replace(/[\u{3000}\u{2002}\u{2003}\u{2004}\u{2005}\u{2009}\u{200A}\u{202F}\u{205F}\t\n\r]+/gu, ' ')
-            .trim()
+        tag.replace(/[\u{3000}\t\n\r]+/gu, ' ').trim()
     ).filter(t => t);
-
     if (normalizedTags.length === 0) return [];
-
-    // 無効タグチェック
+    // 無効タグチェック（複合禁止）
     const invalid = normalizedTags.some(tag => {
-        if (/^R[\d-]*$/i.test(tag)) return false; // /R3, /R1-5
-        if (/^[avrc]$/i.test(tag)) return false; // /a, /v, /r, /c
+        if (/^R[\d-]*$/i.test(tag)) return false;
+        if (/^[avrc]$/i.test(tag)) return false;
         return true;
     });
-
     if (invalid) {
         console.warn(`[PromptSwitch] 無効なタグ: /${rawTags.join('/')} → /で区切ってください。`);
         return [];
     }
-
     return normalizedTags.map(t => t.toLowerCase());
 }
-
 // ========================================
 // 2. UI Control Helper Functions
 // ========================================
@@ -106,19 +103,16 @@ function findTextWidget(node) {
     }
     return null;
 }
-
 function isNodeExcluded(node, keys) {
     const tags = parseNodeTags(node);
     return keys.some(key => tags.includes(key.toLowerCase()));
 }
-
 function isLineDisabled(line) {
     const trimmedLine = line.trimStart();
     const isEmpty = trimmedLine === '';
     if (isEmpty) return false;
     return trimmedLine.startsWith('//');
 }
-
 function toggleAllPrompts(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -157,7 +151,6 @@ function toggleAllPrompts(text) {
     });
     return newLines.join('\n');
 }
-
 function deactivatePromptText(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -179,7 +172,6 @@ function deactivatePromptText(text) {
     });
     return newLines.join('\n');
 }
-
 function deactivateAllPromptSwitchNodes(app) {
     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
     for (const node of promptNodes) {
@@ -194,17 +186,27 @@ function deactivateAllPromptSwitchNodes(app) {
     }
     app.graph.setDirtyCanvas(true, true);
 }
+// ========================================
+// 編集モード切替（Shift+E 完全入力防止対応）
+// ========================================
+function toggleEditMode(node, textWidget, forceMode = null, options = {}) {
+    const targetMode = forceMode !== null ? forceMode : !node.isEditMode;
+    node.isEditMode = targetMode;
+    textWidget.hidden = !targetMode;
 
-function toggleEditMode(node, textWidget) {
-    node.isEditMode = !node.isEditMode;
-    textWidget.hidden = !node.isEditMode;
-    if (node.isEditMode && textWidget.inputEl) {
-        textWidget.inputEl.focus();
-        textWidget.inputEl.selectionStart = textWidget.inputEl.selectionEnd = textWidget.inputEl.value.length;
+    if (targetMode && textWidget.inputEl) {
+        requestAnimationFrame(() => {
+            if (textWidget.inputEl && node.isEditMode) {
+                // skipFocus が true ならフォーカス自体をしない → カーソルも入力もゼロ
+                if (!options.skipFocus) {
+                    textWidget.inputEl.focus();
+                    textWidget.inputEl.selectionStart = textWidget.inputEl.selectionEnd = textWidget.inputEl.value.length;
+                }
+            }
+        });
     }
-    node.setDirtyCanvas(true);
+    node.setDirtyCanvas(true, true);
 }
-
 function stripOuterParenthesesAndWeight(text) {
     let currentWeight = 1.0;
     let processedText = text.trim();
@@ -225,7 +227,6 @@ function stripOuterParenthesesAndWeight(text) {
     }
     return [processedText, currentWeight, trailingComma];
 }
-
 function resetAllWeights(text) {
     const lines = text.split('\n');
     const newLines = lines.map(line => {
@@ -257,7 +258,6 @@ function resetAllWeights(text) {
     });
     return newLines.join('\n');
 }
-
 function adjustWeightInText(text, lineIndex, delta) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -297,7 +297,6 @@ function adjustWeightInText(text, lineIndex, delta) {
     lines[lineIndex] = originalLeadingSpaces + prefix + newPromptPart + commentPart;
     return lines.join('\n');
 }
-
 function toggleCommentOnLine(text, lineIndex) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -314,7 +313,6 @@ function toggleCommentOnLine(text, lineIndex) {
     }
     return lines.join('\n');
 }
-
 function getRTagSelectionRange(node) {
     const tags = parseNodeTags(node);
     const rTag = tags.find(t => t.startsWith('r'));
@@ -332,13 +330,11 @@ function getRTagSelectionRange(node) {
         return [count, count];
     }
 }
-
 function randomPickupPrompts(text, node) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
     const prefixRegex = /^\s*\/\/\s*/;
     const [globalMinSelection, globalMaxSelection] = getRTagSelectionRange(node);
-
     const sections = [];
     let currentSection = [];
     for (let i = 0; i < lines.length; i++) {
@@ -352,7 +348,6 @@ function randomPickupPrompts(text, node) {
         }
     }
     if (currentSection.length > 0) sections.push(currentSection);
-
     const newLines = [];
     for (const section of sections) {
         const isSeparator = section.length === 1 && section[0].trim() === '';
@@ -378,7 +373,6 @@ function randomPickupPrompts(text, node) {
         let numToSelect = minSelect === maxSelect
             ? minSelect
             : Math.floor(Math.random() * (maxSelect - minSelect + 1)) + minSelect;
-
         const selectedIndices = [];
         const indicesToPick = [...validPromptIndices];
         for (let i = 0; i < numToSelect; i++) {
@@ -415,7 +409,6 @@ function randomPickupPrompts(text, node) {
     }
     return newLines.join('\n');
 }
-
 // ========================================
 // クリック処理関数群
 // ========================================
@@ -428,7 +421,6 @@ function findClickedArea(pos) {
     }
     return null;
 }
-
 function handleClickableAreaAction(area, textWidget, app) {
     if (area.type === 'checkbox' || area.type === 'text_area_suppressor') {
         textWidget.value = toggleCommentOnLine(textWidget.value, area.lineIndex);
@@ -440,12 +432,10 @@ function handleClickableAreaAction(area, textWidget, app) {
     if (textWidget.callback) textWidget.callback(textWidget.value);
     app.graph.setDirtyCanvas(true, true);
 }
-
 function setupClickHandler(node, textWidget, app) {
     node.clickableAreas = [];
     node.findClickedArea = findClickedArea;
     node.handleClickableAreaAction = handleClickableAreaAction;
-
     const originalOnMouseDown = node.onMouseDown;
     node.onMouseDown = function(e, pos) {
         if (this.isEditMode) {
@@ -472,19 +462,16 @@ function setupClickHandler(node, textWidget, app) {
             if (originalOnMouseDown) originalOnMouseDown.apply(this, arguments);
         }
     };
-
     const originalOnMouseUp = node.onMouseUp;
     node.onMouseUp = function(e, pos) {
         if (originalOnMouseUp) originalOnMouseUp.apply(this, arguments);
     };
-
     const originalOnContextMenu = node.onContextMenu;
     node.onContextMenu = function(e) {
         if (originalOnContextMenu) return originalOnContextMenu.apply(this, arguments);
         return true;
     };
 }
-
 function drawSeparatorLine(ctx, node, y) {
     const lineY = y + CONFIG.emptyLineHeight / 2;
     const startX = CONFIG.sideNodePadding;
@@ -496,7 +483,6 @@ function drawSeparatorLine(ctx, node, y) {
     ctx.lineTo(endX, lineY);
     ctx.stroke();
 }
-
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
@@ -509,7 +495,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const firstCommentIndex = trimLine.indexOf('//');
     let currentX = startX;
     let totalTextWidth = 0;
-
     function stripOuterParenthesesAndWeightLocal(text) {
         let currentWeight = 1.0;
         let processedText = text.trim();
@@ -530,7 +515,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
         }
         return [processedText + trailingComma, currentWeight];
     }
-
     if (firstCommentIndex === -1) {
         let beforeText = trimLine;
         [beforeText, weight] = stripOuterParenthesesAndWeightLocal(beforeText);
@@ -568,7 +552,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     }
     return ["", weight, totalTextWidth];
 }
-
 function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
     const checkboxX = CONFIG.sideNodePadding;
     const checkboxY = y + (CONFIG.lineHeight - CONFIG.checkboxSize) / 2;
@@ -593,7 +576,6 @@ function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
         height: CONFIG.lineHeight,
     });
 }
-
 function drawWeightButtons(ctx, node, y, lineIndex, weight) {
     const isDefaultWeight = weight.toFixed(2) === "1.00";
     let currentX = node.size[0] - CONFIG.sideNodePadding;
@@ -652,7 +634,6 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
         });
     }
 }
-
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
     const lines = text.split('\n');
@@ -728,7 +709,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
     }
 }
-
 // ========================================
 // 3. Extension Registration
 // ========================================
@@ -740,8 +720,24 @@ app.registerExtension({
                 const textWidget = findTextWidget(this);
                 if (!textWidget) return;
                 let actionTaken = false;
-
-                if (e.key === 'a' || e.key === 'A') {
+                // Shift+E: 全ノード編集モードトグル（既に編集中のものは維持）
+                if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
+                    const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
+                    if (promptNodes.length === 0) return true;
+                    // 全てのノードが編集モードかチェック
+                    const allInEditMode = promptNodes.every(n => n.isEditMode === true);
+                    const targetEditMode = !allInEditMode;
+                    for (const node of promptNodes) {
+                        const w = findTextWidget(node);
+                        if (!w) continue;
+                        if (node.isEditMode === targetEditMode) continue;
+                        // フォーカス自体をしない → カーソルも入力も完全に防止
+                        toggleEditMode(node, w, targetEditMode, { skipFocus: true });
+                    }
+                    app.graph.setDirtyCanvas(true, true);
+                    actionTaken = true;
+                }
+                else if (e.key === 'a' || e.key === 'A') {
                     if (e.shiftKey) {
                         if (this.isEditMode) return false;
                         const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
@@ -827,8 +823,36 @@ app.registerExtension({
                         }
                     }
                 }
-                else if (e.key === 'F2' || e.key === 'E' || e.key === 'e') {
-                    toggleEditMode(this, textWidget);
+                else if (e.key === 'c' || e.key === 'C') {
+                    const currentTitle = this.title || "";
+                    const tags = parseNodeTags(this);
+                    const hasCTag = tags.includes('c');
+                    let newTitle = "";
+                    if (hasCTag) {
+                        const tagMatches = [...currentTitle.matchAll(/\/([^\/\s]*)/g)];
+                        const cleanTags = tagMatches
+                            .filter(m => m[1].toLowerCase() !== 'c')
+                            .map(m => '/' + m[1]);
+                        const nonTagParts = currentTitle.split(/\/[^\/\s]*/);
+                        let baseName = nonTagParts[0].trim();
+                        if (cleanTags.length > 0) {
+                            newTitle = baseName;
+                            if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
+                            newTitle += cleanTags.join(' ');
+                        } else {
+                            newTitle = baseName;
+                        }
+                    } else {
+                        newTitle = currentTitle.trim();
+                        if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
+                        newTitle += '/C';
+                    }
+                    this.title = newTitle.trim();
+                    app.graph.setDirtyCanvas(true, true);
+                    actionTaken = true;
+                }
+                else if (e.key === 'F2' || (e.key === 'e' || e.key === 'E') && !e.shiftKey) {
+                    toggleEditMode(this, textWidget); // フォーカスあり
                     actionTaken = true;
                 }
                 else if (e.key === 'F1') {
@@ -837,6 +861,7 @@ app.registerExtension({
                         `----------------------------------------`,
                         `F1 : このヘルプを表示`,
                         `F2/E : 編集モード切替 (ノードの枠のDblClickでも可)`,
+                        `Shift+E : 全ノード編集モードトグル（既に編集中のものは維持）`,
                         `A : All Prompts (選択ノードの全消し優先トグル切替)`,
                         `Shift+A: 全ノードを一括で全無効化 (除外: /a)`,
                         `R : Random Pickup (セクションからランダム選択)`,
@@ -845,10 +870,10 @@ app.registerExtension({
                         `W : 全てのウェイトをリセット (1.0)`,
                         `V : Visible/Invisible (選択ノードのトグル)`,
                         `Shift+V: 全ノード一括トグル (除外: /v)`,
-                        `C : Auto Random (生成前 + 1枚ごとにランダム)`,
+                        `C : /C タグのトグル（タイトル末尾に追加/削除）`,
                         ``,
                         `【タグは / で区切ってください】`,
-                        `例: MyNode /v　/a /R0-3 /C`,
+                        `例: おまじない/r/a/C　（スペースなしでもOK）`,
                         `→ 全角スペース・タブ・改行も無視`,
                         `複合タグ (/R2a, /var) は無効 → 警告が出ます`,
                         ``,
@@ -865,7 +890,6 @@ app.registerExtension({
                     }
                     actionTaken = true;
                 }
-
                 if (actionTaken) {
                     if (e.key !== 'F1') {
                         if (textWidget.callback) {
@@ -873,7 +897,7 @@ app.registerExtension({
                         }
                     }
                     this.setDirtyCanvas(true, true);
-                    if (e.shiftKey && (e.key === 'v' || e.key === 'V' || e.key === 'a' || e.key === 'A' || e.key === 'r' || e.key === 'R')) {
+                    if (e.shiftKey && (e.key === 'v' || e.key === 'V' || e.key === 'a' || e.key === 'A' || e.key === 'r' || e.key === 'R' || e.key === 'e' || e.key === 'E')) {
                         app.graph.setDirtyCanvas(true, true);
                     }
                     e.preventDefault();
@@ -881,7 +905,6 @@ app.registerExtension({
                     return true;
                 }
             };
-
             this.setupNodeCreatedCallback(nodeType, CONFIG, app);
         }
     },
@@ -891,23 +914,19 @@ app.registerExtension({
             if (origOnNodeCreated) {
                 origOnNodeCreated.apply(this, arguments);
             }
-
             const textWidget = findTextWidget(this);
             if (textWidget) {
                 if (this.size[0] < CONFIG.minNodeWidth) {
                     this.size[0] = CONFIG.minNodeWidth;
                 }
-
                 this.isCompactMode = false;
                 this.originalHeight = this.size[1];
                 textWidget.value = "";
                 if (textWidget.callback) textWidget.callback(textWidget.value);
-
                 this.isEditMode = false;
                 textWidget.y = CONFIG.topNodePadding;
                 textWidget.options.minHeight = this.size[1] - textWidget.y - 10;
                 textWidget.hidden = true;
-
                 const forceHide = (node) => {
                     if (!node.isEditMode) {
                         textWidget.hidden = true;
@@ -916,17 +935,13 @@ app.registerExtension({
                         node.setDirtyCanvas(true, true);
                     }
                 };
-
                 setupClickHandler(this, textWidget, app);
-
-                // 編集モード開始防止
                 const node = this;
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         forceHide(node);
                     });
                 });
-
                 const originalOnAdded = this.onAdded;
                 this.onAdded = function() {
                     if (originalOnAdded) originalOnAdded.apply(this, arguments);
@@ -937,9 +952,7 @@ app.registerExtension({
                     }
                     forceHide(this);
                 };
-
                 this.onMouseMove = null;
-
                 const originalOnDblClick = this.onDblClick;
                 this.onDblClick = function(e, pos) {
                     const [x, y] = pos;
@@ -956,7 +969,7 @@ app.registerExtension({
                         return true;
                     }
                     if (!clickedArea && y >= CONFIG.headerHeight) {
-                        toggleEditMode(this, textWidget);
+                        toggleEditMode(this, textWidget); // フォーカスあり
                         e.preventDefault();
                         e.stopPropagation();
                         return true;
@@ -965,7 +978,6 @@ app.registerExtension({
                     e.stopPropagation();
                     return true;
                 };
-
                 const originalOnDrawForeground = this.onDrawForeground;
                 this.onDrawForeground = function(ctx) {
                     if (!this.isEditMode) {
@@ -974,16 +986,19 @@ app.registerExtension({
                     if (originalOnDrawForeground) {
                         originalOnDrawForeground.call(this, ctx);
                     }
+                    // 描画後に確実に非表示を強制（バグ対策）
                     requestAnimationFrame(() => {
-                        forceHide(this);
+                        if (!this.isEditMode && textWidget && textWidget.hidden !== true) {
+                            textWidget.hidden = true;
+                            this.setDirtyCanvas(true, true);
+                        }
                     });
                 };
-
                 const originalOnResize = this.onResize;
                 this.onResize = function(size) {
                     if (originalOnResize) originalOnResize.apply(this, arguments);
                     if (textWidget) {
-                        const widgetY = CONFIG.topNodePadding;
+                        const widgetY = CONFIG.topNodePadding;  // ← 修正: widget00 → widgetY
                         textWidget.y = widgetY;
                         textWidget.options.minHeight = this.size[1] - widgetY - 10;
                         if (this.size[1] > CONFIG.minNodeHeight && !this.isCompactMode) {
@@ -992,21 +1007,18 @@ app.registerExtension({
                     }
                     this.setDirtyCanvas(true, true);
                 };
-
                 if (this.onResize) this.onResize();
                 if (this.setDirtyCanvas) this.setDirtyCanvas(true, true);
             }
         };
     }
 });
-
 // ===============================================
-// 初回 + 1枚ごとにランダム（queuePrompt + onNodeExecuted）
+// 初回 + 1枚ごとにランダム（queuePrompt + onAfterExecutePrompt）
 // ===============================================
 if (typeof app !== 'undefined') {
     const originalQueuePrompt = app.queuePrompt;
     app.queuePrompt = async function (...args) {
-        // 初回ランダム（1枚目用）
         app.graph._nodes
             .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
             .forEach(n => {
@@ -1018,27 +1030,25 @@ if (typeof app !== 'undefined') {
                 }
             });
         app.graph.setDirtyCanvas(true, true);
-
         return await originalQueuePrompt.apply(this, args);
     };
-
-    // 2枚目以降：1枚ごとに確実にランダム
-    const originalOnNodeExecuted = app.graph.onNodeExecuted || function() {};
-    app.graph.onNodeExecuted = function(node) {
-        originalOnNodeExecuted.call(this, node);
-
-        if (node.type !== 'PromptSwitch') return;
-        const tags = parseNodeTags(node);
-        if (!tags.includes('c')) return;
-
-        const textWidget = findTextWidget(node);
-        if (!textWidget || typeof randomPickupPrompts !== 'function') return;
-
-        textWidget.value = randomPickupPrompts(textWidget.value, node);
-        if (textWidget.callback) {
-            textWidget.callback(textWidget.value);
+    const originalAfterExec = app.onAfterExecutePrompt || function() {};
+    app.onAfterExecutePrompt = function() {
+        try {
+            app.graph._nodes
+                .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
+                .forEach(n => {
+                    const w = findTextWidget(n);
+                    if (w && typeof randomPickupPrompts === 'function') {
+                        w.value = randomPickupPrompts(w.value, n);
+                        if (w.callback) w.callback(w.value);
+                        n.setDirtyCanvas(true, true);
+                    }
+                });
+            app.graph.setDirtyCanvas(true, true);
+        } catch (err) {
+            console.warn("PromptSwitch /C auto-random error:", err);
         }
-        node.setDirtyCanvas(true, true);
-        app.graph.setDirtyCanvas(true, true);
+        return originalAfterExec.apply(this, arguments);
     };
 }

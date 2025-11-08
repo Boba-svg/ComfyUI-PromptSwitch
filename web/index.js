@@ -49,7 +49,7 @@ const CONFIG = {
     sideNodePadding: 14,
     lineHeight: 18,
     emptyLineHeight: 4,
-    emptyLineSeparatorColor: "#888",
+    emptyLineSeparatorColor: "#ADD8E6",
     fontSize: 14,
     FONT_FAMILY: "Tahoma, Verdana, Arial, Roboto, 'Open Sans', sans-serif",
     checkboxSize: 16,
@@ -67,6 +67,10 @@ const CONFIG = {
     COLOR_COMMENT_ON: "#ADD8E6",
     COLOR_PROMPT_OFF: "#AAAAAA",
     COLOR_COMMENT_OFF: "#AAAAAA",
+    // 追加：コメントセパレータ設定
+    CommentLine_LineColor: "#888",   // 紫線カラー（明るめ）
+    CommentLine_Height: 4,              // 紫線の高さ（px）
+    CommentLine_FontColor: "#ADD8E6",   // 紫コメント文字色
 };
 
 // ========================================
@@ -672,6 +676,38 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
         const isLineEmpty = line.trim() === '';
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
+
+        // 【新機能】コメントセパレータ //,// 処理
+        const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
+        if (commentLineMatch) {
+            const prefixSpaces = commentLineMatch[1];
+            const commentText = commentLineMatch[2];
+            const isPureSeparator = commentText.trim() === '';
+            if (isPureSeparator) {
+                // 紫線（高さ4px）
+                const lineY = y + CONFIG.CommentLine_Height / 2;
+                ctx.strokeStyle = CONFIG.CommentLine_LineColor;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(CONFIG.sideNodePadding, lineY);
+                ctx.lineTo(node.size[0] - CONFIG.sideNodePadding, lineY);
+                ctx.stroke();
+                y += CONFIG.CommentLine_Height;
+            } else {
+                // 紫コメント行（通常行高さ）
+                ctx.font = `${CONFIG.fontSize}px ${CONFIG.FONT_FAMILY}`;
+                ctx.fillStyle = CONFIG.CommentLine_FontColor;
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "left";
+                const textX = CONFIG.sideNodePadding + CONFIG.checkboxSize + CONFIG.spaceBetweenCheckboxAndText;
+                ctx.fillText(commentText, textX, y + CONFIG.lineHeight / 2);
+                y += CONFIG.lineHeight;
+                // チェックボックス・ボタン非表示
+            }
+            lineIndex++;
+            continue;
+        }
+
         if (isLineEmpty) {
             drawSeparatorLine(ctx, node, y);
             y += CONFIG.emptyLineHeight;

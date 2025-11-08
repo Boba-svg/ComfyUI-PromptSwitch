@@ -1,6 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch #2890
+// PromptSwitch #2891
 // カンマの扱いを統一性のあるもの修正
 // 改造内容：
 // ・Rキーをランダムピックアップ（単一/Shift+Rで全ノード）に置き換え
@@ -37,9 +37,10 @@
 //
 // 【Shift+C 追加】（2025-11-07）
 // ・Shift+C：全ノードのタイトルから /C を一括削除
-
+//
+// 【2025-11-09 変更】
+// ・ランダムピックアップの対象から //,// および //,//コメント を除外
 import { app } from "../../scripts/app.js";
-
 const CONFIG = {
     // UIの描画設定
     minNodeWidth: 400,
@@ -68,11 +69,10 @@ const CONFIG = {
     COLOR_PROMPT_OFF: "#AAAAAA",
     COLOR_COMMENT_OFF: "#AAAAAA",
     // 追加：コメントセパレータ設定
-    CommentLine_LineColor: "#888",   // 紫線カラー（明るめ）
-    CommentLine_Height: 4,              // 紫線の高さ（px）
-    CommentLine_FontColor: "#ADD8E6",   // 紫コメント文字色
+    CommentLine_LineColor: "#888", // 紫線カラー（明るめ）
+    CommentLine_Height: 4, // 紫線の高さ（px）
+    CommentLine_FontColor: "#ADD8E6", // 紫コメント文字色
 };
-
 // ========================================
 // 1. タグパース関数（スペースなし完全対応 + 中間タグ対応）
 // ========================================
@@ -100,7 +100,6 @@ function parseNodeTags(node) {
     }
     return normalizedTags.map(t => t.toLowerCase());
 }
-
 // ========================================
 // 2. UI Control Helper Functions
 // ========================================
@@ -113,19 +112,16 @@ function findTextWidget(node) {
     }
     return null;
 }
-
 function isNodeExcluded(node, keys) {
     const tags = parseNodeTags(node);
     return keys.some(key => tags.includes(key.toLowerCase()));
 }
-
 function isLineDisabled(line) {
     const trimmedLine = line.trimStart();
     const isEmpty = trimmedLine === '';
     if (isEmpty) return false;
     return trimmedLine.startsWith('//');
 }
-
 function toggleAllPrompts(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -164,7 +160,6 @@ function toggleAllPrompts(text) {
     });
     return newLines.join('\n');
 }
-
 function deactivatePromptText(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -186,7 +181,6 @@ function deactivatePromptText(text) {
     });
     return newLines.join('\n');
 }
-
 function deactivateAllPromptSwitchNodes(app) {
     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
     for (const node of promptNodes) {
@@ -201,7 +195,6 @@ function deactivateAllPromptSwitchNodes(app) {
     }
     app.graph.setDirtyCanvas(true, true);
 }
-
 // ========================================
 // 編集モード切替（Shift+E 完全入力防止対応）
 // ========================================
@@ -221,7 +214,6 @@ function toggleEditMode(node, textWidget, forceMode = null, options = {}) {
     }
     node.setDirtyCanvas(true, true);
 }
-
 function stripOuterParenthesesAndWeight(text) {
     let currentWeight = 1.0;
     let processedText = text.trim();
@@ -242,7 +234,6 @@ function stripOuterParenthesesAndWeight(text) {
     }
     return [processedText, currentWeight, trailingComma];
 }
-
 function resetAllWeights(text) {
     const lines = text.split('\n');
     const newLines = lines.map(line => {
@@ -274,7 +265,6 @@ function resetAllWeights(text) {
     });
     return newLines.join('\n');
 }
-
 function adjustWeightInText(text, lineIndex, delta) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -314,7 +304,6 @@ function adjustWeightInText(text, lineIndex, delta) {
     lines[lineIndex] = originalLeadingSpaces + prefix + newPromptPart + commentPart;
     return lines.join('\n');
 }
-
 function toggleCommentOnLine(text, lineIndex) {
     const lines = text.split('\n');
     if (lineIndex < 0 || lineIndex >= lines.length) return text;
@@ -331,7 +320,6 @@ function toggleCommentOnLine(text, lineIndex) {
     }
     return lines.join('\n');
 }
-
 function getRTagSelectionRange(node) {
     const tags = parseNodeTags(node);
     const rTag = tags.find(t => t.startsWith('r'));
@@ -349,7 +337,6 @@ function getRTagSelectionRange(node) {
         return [count, count];
     }
 }
-
 function randomPickupPrompts(text, node) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -379,6 +366,9 @@ function randomPickupPrompts(text, node) {
         for (let i = 0; i < section.length; i++) {
             const line = section[i];
             if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) continue;
+            // 【変更】//,// および //,//コメント をランダム対象から除外
+            const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
+            if (commentLineMatch) continue;
             if (line.trim() !== '') validPromptIndices.push(i);
         }
         const numValidPrompts = validPromptIndices.length;
@@ -411,6 +401,12 @@ function randomPickupPrompts(text, node) {
                 newLines.push(line);
                 continue;
             }
+            // 【変更】//,// 行は元のまま出力（ON/OFF 変更なし）
+            const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
+            if (commentLineMatch) {
+                newLines.push(line);
+                continue;
+            }
             if (selectedIndices.includes(i)) {
                 const newLine = line.replace(prefixRegex, '').trimStart();
                 newLines.push(newLine);
@@ -429,7 +425,6 @@ function randomPickupPrompts(text, node) {
     }
     return newLines.join('\n');
 }
-
 // ========================================
 // クリック処理関数群
 // ========================================
@@ -442,7 +437,6 @@ function findClickedArea(pos) {
     }
     return null;
 }
-
 function handleClickableAreaAction(area, textWidget, app) {
     if (area.type === 'checkbox' || area.type === 'text_area_suppressor') {
         textWidget.value = toggleCommentOnLine(textWidget.value, area.lineIndex);
@@ -454,7 +448,6 @@ function handleClickableAreaAction(area, textWidget, app) {
     if (textWidget.callback) textWidget.callback(textWidget.value);
     app.graph.setDirtyCanvas(true, true);
 }
-
 function setupClickHandler(node, textWidget, app) {
     node.clickableAreas = [];
     node.findClickedArea = findClickedArea;
@@ -495,7 +488,6 @@ function setupClickHandler(node, textWidget, app) {
         return true;
     };
 }
-
 function drawSeparatorLine(ctx, node, y) {
     const lineY = y + CONFIG.emptyLineHeight / 2;
     const startX = CONFIG.sideNodePadding;
@@ -507,7 +499,6 @@ function drawSeparatorLine(ctx, node, y) {
     ctx.lineTo(endX, lineY);
     ctx.stroke();
 }
-
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
@@ -577,7 +568,6 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     }
     return ["", weight, totalTextWidth];
 }
-
 function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
     const checkboxX = CONFIG.sideNodePadding;
     const checkboxY = y + (CONFIG.lineHeight - CONFIG.checkboxSize) / 2;
@@ -602,7 +592,6 @@ function drawCheckboxItems(ctx, node, y, isCommented, lineIndex) {
         height: CONFIG.lineHeight,
     });
 }
-
 function drawWeightButtons(ctx, node, y, lineIndex, weight) {
     const isDefaultWeight = weight.toFixed(2) === "1.00";
     let currentX = node.size[0] - CONFIG.sideNodePadding;
@@ -661,7 +650,6 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
         });
     }
 }
-
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
     const lines = text.split('\n');
@@ -676,7 +664,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
         const isLineEmpty = line.trim() === '';
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
-
         // 【新機能】コメントセパレータ //,// 処理
         const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
         if (commentLineMatch) {
@@ -707,7 +694,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             lineIndex++;
             continue;
         }
-
         if (isLineEmpty) {
             drawSeparatorLine(ctx, node, y);
             y += CONFIG.emptyLineHeight;
@@ -769,7 +755,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
     }
 }
-
 // ========================================
 // 3. Extension Registration
 // ========================================
@@ -1102,7 +1087,6 @@ app.registerExtension({
         };
     }
 });
-
 // ===============================================
 // 生成前に1回だけランダム（/C タグ）
 // onAfterExecutePrompt での再ランダムは完全に削除
@@ -1124,7 +1108,6 @@ if (typeof app !== 'undefined') {
         app.graph.setDirtyCanvas(true, true);
         return await originalQueuePrompt.apply(this, args);
     };
-
     // 生成後の自動ランダムは完全に無効化
     const originalAfterExec = app.onAfterExecutePrompt || function() {};
     app.onAfterExecutePrompt = function() {

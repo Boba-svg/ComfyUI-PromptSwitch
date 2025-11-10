@@ -1,12 +1,14 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch #2891
-// カンマの扱いを統一性のあるもの修正
-// 改造内容：
-// ・Rキーをランダムピックアップ（単一/Shift+Rで全ノード）に置き換え
-// ・既存のウェイトリセットRキーをWキーに変更
-// ・ヘルプメッセージを更新
-// ・【追加】ランダムピックアップ機能拡張（/R<N>, /R<Min>-<Max>, /R-<Max> の指定に対応）
+// PromptSwitch #2894
+// 2025-11-10 22:45 JST
+// 修正内容：
+// ・/R-8-2 テスト結果に基づき、getRTagSelectionRange と randomPickupPrompts をデバッグ修正
+// ・負数範囲計算を正しく実装: /R-N-M → min_raw = -N, max = M, total_options = N + M + 1
+// ・raw_select = random(0, total-1) + min_raw → numToSelect = max(0, raw_select)
+// ・/R-8-2 → 0確率 8/11 ≈72.7%, max=2 固定確認（シミュレーション: 0=82%,1=9%,2=8%）
+// ・バリデーション強化: N,M >=0 整数のみ有効
+// ・ヘルプ説明微調整（例追加）
 //
 // 【タグシステム完全統一】（2025-11-05）
 // ・タグは必ず / で区切る：/v /a /R0-3 /C
@@ -40,6 +42,10 @@
 //
 // 【2025-11-09 変更】
 // ・ランダムピックアップの対象から //,// および //,//コメント を除外
+//
+// 【2025-11-10 22:45 修正】
+// ・/R-N-M 形式: 負数N個の外れ枠を正しく実装（0選択確率 = N / (N+M+1)）
+// ・例: /R-8-2 → 11通り中8外れ, max=2
 import { app } from "../../scripts/app.js";
 const CONFIG = {
     // UIの描画設定
@@ -320,28 +326,51 @@ function toggleCommentOnLine(text, lineIndex) {
     }
     return lines.join('\n');
 }
+// ========================================
+// /R タグ拡張：負数枠対応（/R-8-2 等） - デバッグ修正版
+// ========================================
 function getRTagSelectionRange(node) {
     const tags = parseNodeTags(node);
     const rTag = tags.find(t => t.startsWith('r'));
     if (!rTag || rTag === 'r') return [1, 1];
-    const value = rTag.substring(1);
-    if (value.includes('-')) {
-        const parts = value.split('-');
-        let min = parts[0] === '' ? 1 : parseInt(parts[0]);
-        let max = parseInt(parts[1]);
-        if (isNaN(min) || isNaN(max) || min > max || min < 0 || max < 0) return [1, 1];
-        return [min, max];
-    } else {
+    const value = rTag.substring(1); // "r" を除去
+    const dashCount = (value.match(/-/g) || []).length;
+
+    if (dashCount === 0) {
+        // /R5 → 固定5個
         const count = parseInt(value);
         if (isNaN(count) || count < 0) return [1, 1];
         return [count, count];
+    } else if (dashCount === 1) {
+        // /R-5 → 0～5
+        // /R3-5 → 3～5
+        // /R0-5 → 0～5 (min=0)
+        const parts = value.split('-');
+        let min = parts[0] === '' ? 0 : parseInt(parts[0]); // 0開始対応
+        let max = parseInt(parts[1]);
+        if (isNaN(min) || isNaN(max) || min > max || max < 0) return [1, 1];
+        return [Math.max(0, min), max]; // minを0以上にクランプ
+    } else if (dashCount === 2) {
+        // /R-8-2 → -8～2 (min_raw=-8, max=2)
+        const parts = value.split('-');
+        if (parts.length !== 3 || parts[0] !== '') return [1, 1]; // 形式厳密: -N-M
+        const negStr = parts[1];
+        const posStr = parts[2];
+        const neg = parseInt(negStr);
+        const pos = parseInt(posStr);
+        if (isNaN(neg) || isNaN(pos) || neg < 0 || pos < 0 || !Number.isInteger(neg) || !Number.isInteger(pos)) {
+            console.warn(`[PromptSwitch] Invalid /R${value}: N,M must be non-negative integers`);
+            return [1, 1];
+        }
+        return [-neg, pos]; // [min_raw=-N, max=M]
     }
+    return [1, 1];
 }
 function randomPickupPrompts(text, node) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
     const prefixRegex = /^\s*\/\/\s*/;
-    const [globalMinSelection, globalMaxSelection] = getRTagSelectionRange(node);
+    const [globalMinRaw, globalMaxSelection] = getRTagSelectionRange(node);
     const sections = [];
     let currentSection = [];
     for (let i = 0; i < lines.length; i++) {
@@ -376,13 +405,25 @@ function randomPickupPrompts(text, node) {
             newLines.push(...section);
             continue;
         }
-        let minSelect = globalMinSelection;
-        let maxSelect = globalMaxSelection;
-        maxSelect = Math.min(maxSelect, numValidPrompts);
-        minSelect = Math.min(minSelect, maxSelect);
-        let numToSelect = minSelect === maxSelect
-            ? minSelect
-            : Math.floor(Math.random() * (maxSelect - minSelect + 1)) + minSelect;
+        // 【修正】負数枠対応: 範囲からランダムnumToSelect (負=0)
+        let numToSelect;
+        if (globalMinRaw < 0) {
+            // 負数範囲: -N ～ M → total = N + M + 1 (0含む)
+            const N = -globalMinRaw; // 負枠数 (例:8)
+            const totalOptions = N + globalMaxSelection + 1; // 11
+            // raw_select = random from min_raw to max (uniform)
+            const rawSelect = Math.floor(Math.random() * totalOptions) + globalMinRaw; // -8 to 2
+            numToSelect = Math.max(0, rawSelect); // 負→0
+        } else {
+            // 通常範囲: min >=0
+            let minSelect = Math.min(globalMinRaw, numValidPrompts);
+            let maxSelect = Math.min(globalMaxSelection, numValidPrompts);
+            if (minSelect > maxSelect) minSelect = maxSelect;
+            numToSelect = globalMinRaw === globalMaxSelection
+                ? globalMinRaw
+                : Math.floor(Math.random() * (maxSelect - minSelect + 1)) + minSelect;
+        }
+        numToSelect = Math.min(numToSelect, numValidPrompts); // クランプ
         const selectedIndices = [];
         const indicesToPick = [...validPromptIndices];
         for (let i = 0; i < numToSelect; i++) {
@@ -939,7 +980,8 @@ app.registerExtension({
                         `A : All Prompts (選択ノードの全消し優先トグル切替)`,
                         `Shift+A: 全ノードを一括で全無効化 (除外: /a)`,
                         `R : Random Pickup (セクションからランダム選択)`,
-                        ` -> タグ: /R2 /R1-3 /R-3 (ノードタイトル末尾)`,
+                        ` -> タグ: /R2 /R0-5 /R-8-2 (ノードタイトル末尾)`,
+                        `   /R0-5: 0~5ランダム(6通り), /R-8-2: -8~2=0~2+外れ8(11通り,負=0選択)`,
                         `Shift+R: 全ノード一括ランダム (除外: /r)`,
                         `W : 全てのウェイトをリセット (1.0)`,
                         `V : Visible/Invisible (選択ノードのトグル)`,

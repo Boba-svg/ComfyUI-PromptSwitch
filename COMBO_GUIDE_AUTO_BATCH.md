@@ -35,14 +35,7 @@ neutral expression
 - 1～2選択: 3/103 ≈ 2.9%
 - 変化が「多すぎる」と感じない
 
-### 2. AutoBatchRunner設定
-custom_nodes/ComfyUI_AutoBatchRunner/auto_runner_config.json 内に以下を設定:
-{
-  "runs": 200,
-  "interval": 3
-}
-
-### 3. 実行
+### 2. 実行
 1. ワークフローを保存
 2. 右上のAutoBatchパネルで回数（200）を確認
 3. Shift+Qで200枚の自動生成開始

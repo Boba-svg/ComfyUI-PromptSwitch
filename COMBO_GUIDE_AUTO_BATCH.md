@@ -24,7 +24,7 @@ gitで以下をインストール:
 ## 設定例1: ほぼ固定、時折変化（推奨）
 
 ### 1. PromptSwitchノード設定
-表情 /R-100-2 /C  
+ノードタイトル:表情 /R-100-2 /C  
 happy smile  
 sad face  
 angry glare  
@@ -46,14 +46,14 @@ neutral expression
 
 ## 設定例2: バランスよく変化
 
-服装 /R-1-2 /C
-casual wear
-formal suit
-sporty outfit
+ノードタイトル:服装 /R-1-2 /C  
+casual wear  
+formal suit  
+sporty outfit  
 
-- 0選択: 33.3%
-- 1選択: 33.3%
-- 2選択: 33.3%
+- 0選択: 33.3%  
+- 1選択: 33.3%  
+- 2選択: 33.3%  
 
 ---
 

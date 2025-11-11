@@ -15,7 +15,7 @@ Generateごとにプロンプトを自動変更し、100回以上の連続生成
 
 ## 必要なもの
 
-ComfyUI Managerで以下をインストール:
+gitで以下をインストール:
 1. PromptSwitch
 2. AutoBatchRunner
 

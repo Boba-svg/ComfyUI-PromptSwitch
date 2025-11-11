@@ -77,8 +77,7 @@ https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 - **`/R-3-2`** → 毎回 **-3〜2個** の間でランダム（負=0選択、外れ枠3個追加、総6通り中3外れ、0確率≈50%）
 → **「狙ったテイスト」に絞りながら、**
 　　**Generate ボタン1回でバリエーションを試せる！**
----
-## 連続生成との最強コンボ
+### 連続生成との最強コンボ
 [AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせると、  
 **Generate 1回ごとに自動ランダム更新 × 100回バッチ生成** が可能！
 

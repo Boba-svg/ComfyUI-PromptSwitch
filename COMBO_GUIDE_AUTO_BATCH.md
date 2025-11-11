@@ -24,12 +24,12 @@ gitで以下をインストール:
 ## 設定例1: ほぼ固定、時折変化（推奨）
 
 ### 1. PromptSwitchノード設定
-表情 /R-100-2 /C
-happy smile
-sad face
-angry glare
-surprised eyes
-neutral expression
+表情 /R-100-2 /C  
+happy smile  
+sad face  
+angry glare  
+surprised eyes  
+neutral expression  
 
 - 0選択確率: 100/103 ≈ 97.1%
 - 1～2選択: 3/103 ≈ 2.9%

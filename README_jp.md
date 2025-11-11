@@ -78,10 +78,9 @@ https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
 → **「狙ったテイスト」に絞りながら、**
 　　**Generate ボタン1回でバリエーションを試せる！**
 ### 連続生成との最強コンボ
-[AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせると、  
-**Generate 1回ごとに自動ランダム更新 × 100回バッチ生成** が可能！
-
-→ 詳細は [**連携ガイド**](./COMBO_GUIDE_AUTO_BATCH.md) をチェック！
+> [AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせると、  
+> **Generate 1回ごとに自動ランダム更新 × 100回バッチ生成** が可能！
+> → 詳細は [**連携ガイド**](./COMBO_GUIDE_AUTO_BATCH.md) をチェック！
 ---
 ## タグのルール（`/C` + `/R` 必須）
 ノードタイトルの末尾にタグを追加。

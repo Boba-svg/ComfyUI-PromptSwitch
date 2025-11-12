@@ -58,11 +58,11 @@ sporty outfit
 ---
 
 ## ショートカット一覧
-
-C        - /C切り替え
-Shift+Q  - 自動生成開始
-Shift+S  - 自動生成停止
-Shift+C  - 全/C削除
+  
+C        - /C切り替え  
+Shift+Q  - 自動生成開始  
+Shift+S  - 自動生成停止  
+Shift+C  - 全/C削除  
 
 ---
 

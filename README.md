@@ -1,172 +1,99 @@
-# ComfyUI-PromptSwitch Dramatically Speeds Up Prompt Work!
-A custom node that allows intuitive ON/OFF switching and weight adjustment of prompts, just like a checklist.
+# ComfyUI-PromptSwitch プロンプト作業を劇的に高速化！
+プロンプトのON/OFF切り替えやウェイト調整を、チェックリストのように直感的に行えるカスタムノードです。
 ---
-Welcome to **PromptSwitch**, now available on GitHub!
-This is a version that dramatically improves **prompt management and operability**, based on the idea of **Prompt Palette**.
-The Japanese README is here:
+GitHubで公開された「PromptSwitch」へようこそ！
+これは、**Prompt Palette** のアイデアをベースに、**プロンプト管理と操作性を劇的に改善**したバージョンです。
+日本語の README はここ：
 https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
-To distinguish the origin of features, they are marked as follows:
-* **[Original]**: Basic features inherited from Prompt Palette
-* **[Switch]**: Features added or improved in PromptSwitch
+機能の起源を区別するために、以下のように表記しています。
+* **[Original]**：Prompt Palette から受け継いだ基本機能
+* **[Switch]**：PromptSwitch で追加・改善された機能
 ---
-## Main Features
-※Images may be outdated. **Refer to the latest shortcuts below** (R key → Random, W key → Reset, C key → /C toggle, etc.)
-![Feature Explanation](images/setsumei.png)
-![Sample](images/sample.png)
-Each prompt line can be operated independently, and customization is also possible.
-### 1. Interactive Prompt Management
-In non-edit mode, each line is displayed like a checklist.
-* **[Original]** Line ON/OFF Toggle
-  Click a line to enable/disable (adds `//`)
-* **[Original]** Weight Adjustment
-  Use `+` / `-` buttons on the right of the line to adjust in `CONFIG.WEIGHT_STEP` units (default `0.10`)
-* **[Original]** Operable in Edit Mode
-  Repeat execution while editing
-* **[Switch]** Empty lines are displayed as separator lines
-    These separator lines are also used as group dividers for random pickup
-    Light blue line (`#ADD8E6`) is displayed
-* **[Switch]** Separator line `//,//`
-  `//,//` → Gray line (`#888`) displayed as a separator (used purely for visual organization)
-  `//,// comment` → Displayed in light blue text (`#ADD8E6`) (comment line not used as a prompt element)
-* **[Switch]** Display Improvements
-  - Long lines are automatically truncated (max 30 characters + `...`)
-  - Comments (strings after `//`) hide `//`, font size 80%, color `#ADD8E6`
-### 2. Mode Switching
-* **Edit Mode**
-  `F2` or `E` key, or double-click the node frame
-* **[Switch]** Compact Mode
-  `V` key: Hide disabled lines (minimize height)
-  `Shift+V`: Toggle all nodes at once (excluding `/v`)
+## 主な機能
+※画像は古い可能性あり。**最新のショートカットは下記参照**（Rキー → ランダム、Wキー → リセット、Cキー → /Cトグルなど）
+![機能説明](images/setsumei.png)
+![サンプル](images/sample.png)
+各プロンプト行を独立して操作でき、カスタマイズも可能です。
+### 1. インタラクティブなプロンプト管理
+非編集モードでは、各行がチェックリストのように表示されます。
+* **[Original]** 行のON/OFF切り替え
+  行をクリックで有効/無効（`//` 付き）
+* **[Original]** ウェイト調整
+  行の右にある `+` / `-` ボタンで、`CONFIG.WEIGHT_STEP`（デフォルト `0.10`）単位で調整
+* **[Original]** 編集モードでも操作可能
+  編集しながら実行を繰り返せます
+* **[Switch]** 空行は区切り線として表示
+    こちらの区切り線はランダムピックアップのグループの区切りとしても利用
+    薄い水色線（`#ADD8E6`）を表示
+* **[Switch]** 区切り線 `//,//`
+  `//,//` → 灰色線（`#888`）で区切り線表示（こちらは純粋に見た目の整理に使われる）
+  `//,// コメント` → 水色文字（`#ADD8E6`）で表示（プロンプトの要素として使われないコメント行）
+* **[Switch]** 表示の改善
+  - 長い行は自動省略（最大30文字 + `...`）
+  - コメント（`//` 以降の文字列）は `//` を非表示、フォントサイズ80%・色 `#ADD8E6`
+### 2. モード切り替え
+* **編集モード**
+  `F2` または `E` キー、またはノード枠をダブルクリック
+* **[Switch]** コンパクトモード
+  `V` キー：無効行を非表示（高さ最小化）
+  `Shift+V`：全ノード一括切替（`/v` 除外）
 ---
-## Shortcut Keys (Latest Version)
-| Key | Function | Description |
+## ショートカットキー（最新版）
+| キー | 機能 | 説明 |
 |--------------|-----------------------------|------|
-| `F1` | Show Help | Shortcut and tag explanations |
-| `F2` / `E` | Toggle Edit Mode | Normal mode ↔ Edit mode |
-| `Shift+E` | **Toggle Edit Mode for All Nodes** | Useful in edit mode as browser search highlighting works (jumping not possible) |
-| `A` | Bulk ON/OFF | Toggle all lines in the selected node |
-| `Shift+A` | Force Disable All Nodes | Comment out all nodes (excluding `/a`) – useful when resetting everything |
-| `V` | Toggle Compact Mode | Hide disabled lines in the selected node |
-| `Shift+V` | Toggle Display for All Nodes | Bulk toggle compact/normal for all nodes (excluding `/v`) |
-| `W` | One-Touch Weight Reset | Reset all weights in the selected node to `1.0` |
-| `R` | Random Pickup | Random selection from sections divided by empty lines (`/R` tag compatible) |
-| `Shift+R` | Randomize All Nodes | Apply random pickup to all nodes (excluding `/r`) |
-| `C` | **Toggle /C Tag** | Add/remove `/C` to/from the title – enables/disables random pickup trigger during image generation |
-| `Shift+C` | **Remove /C from All Nodes** | Bulk remove `/C` from all nodes |
+| `F1` | ヘルプ表示 | ショートカットとタグの説明 |
+| `F2` / `E` | 編集モード切替 | 通常モード ↔ 編集モード |
+| `Shift+E` | **全ノード編集モード切替** | 編集モードではブラウザの検索ワードの強調表示が効くので便利（ジャンプは不可） |
+| `A` | まとめてON/OFF | 選択ノードの全行をトグル |
+| `Shift+A` | 全ノード強制無効化 | 全ノードをコメントアウト（`/a` 除外）全てリセットしたくなった時に |
+| `V` | コンパクトモード切替 | 選択ノードの無効行を非表示 |
+| `Shift+V` | 全ノード表示切替 | 全ノードをコンパクト/通常に一括切替（`/v` 除外） |
+| `W` | ウェイト一発リセット | 選択ノードの全ウェイトを `1.0` にリセット |
+| `R` | ランダムピックアップ | 空行区切りのセクションからランダム選択（`/R`タグ対応） |
+| `Shift+R` | 全ノードランダム | 全ノードにランダムピックアップ（`/r` 除外） |
+| `C` | **/C タグのトグル** | タイトルに `/C` を追加/削除 画像生成時のランダムピックアップのトリガーの付与と削除|
+| `Shift+C` | **全ノードから /C 削除** | 全ノードの `/C` を一括削除 |
 ---
-## Ultimate New Feature: `/C` Tag (Automatic Random Update with Each Generate Button Press)
-> **"Prompts change randomly every time you press the Generate button"**
-> **This is the greatest strength of PromptSwitch.**
-### How to Use (Just 2 Steps)
-1. **Add `/R[number] /C` to the node title**
-   (`C` key toggles `/C`)
-   (Example: `Facial Expression /R0-3 /C`)
-2. **Press "Generate"**
-   → **0 to 3 elements are randomly selected each time, and the image is generated**
-**No need to press the R key at all!**
-### Strengths of the `/C` Tag
-| Traditional Method | With `/C` Tag |
+## 最強の新機能：`/C` タグ（Generate ボタン1回ごとに自動ランダム更新）
+> **「Generate ボタンを押すたびに、プロンプトが自動でランダムに変わる」**
+> **これが PromptSwitch の最大の強みです。**
+### 使い方（たった2ステップ）
+1. **ノードタイトルに `/R[数] /C` を追加**
+   （`C` キーで `/C` をトグル可能）
+   （例：`顔の表情 /R0-3 /C`）
+2. **「Generate」を押す**
+   → **押すたびに 0〜3個の要素が自動でランダム選択され、画像が生成**
+**R キーを押す必要は一切なし！**
+### `/C` タグの強み
+| 従来の方法 | `/C` タグあり |
 |--------------------|-----------------------------|
-| Manual update with `R` key each time | **Automatic update with one Generate** |
-| Same prompt continues | **Different composition every time** |
-| Trial and error is tedious | **Reach the desired image in the shortest time** |
-### Full Control of Randomness with `/R` Tag
-- **`/R1`** → Always **select exactly 1** randomly
-- **`/R1-3`** → Randomly between **1 to 3**
-- **`/R-5`** → Randomly between **0 to 5**
-- **`/R-3-2`** → Randomly between **-3 to 2** (negative = 0 selection, 3 miss slots added, 0 probability ≈50%)
-→ **Narrow down to the desired style while**
-　　**trying variations with one Generate button press!**
+| 毎回 `R` キーで手動更新 | **Generate 1回で自動更新** |
+| 同じプロンプトが続く | **1回1回違う構成** |
+| 試行錯誤が面倒 | **目的の絵に最短で到達** |
+### ランダム具合は `/R` タグで完全制御
+- **`/R1`** → 毎回 **1個だけ** ランダム選択
+- **`/R1-3`** → 毎回 **1〜3個** の間でランダム
+- **`/R-5`** → 毎回 **0〜5個** までランダム
+- **`/R-3-2`** → 毎回 **-3〜2個** の間でランダム（負=0選択、外れ枠3個追加、総6通り中3外れ、0確率≈50%）
+→ **「狙ったテイスト」に絞りながら、**
+　　**Generate ボタン1回でバリエーションを試せる！**
+### 連続生成との最強コンボ
+> [AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせると、  
+> **Generate 1回ごとに自動ランダム更新 × 100回バッチ生成** が可能！
+> → 詳細は [**連携ガイド**](./COMBO_GUIDE_AUTO_BATCH.md) をチェック！
 ---
-## Tag Rules (`/C` + `/R` Required)
-Add tags to the end of the node title.
-**Spaces, tabs, and line breaks are ignored**. **Composite tags (e.g., `/R2a`) are invalid → warning displayed**.
-| Tag | Meaning |
+## タグのルール（`/C` + `/R` 必須）
+ノードタイトルの末尾にタグを追加。
+**スペース・タブ・改行は無視**。**複合タグ（例: `/R2a`）は無効 → 警告表示**。
+| タグ | 意味 |
 |--------------|------|
-| `/a` | Exclude from `Shift+A` |
-| `/v` | Exclude from `Shift+V` |
-| `/r` | Exclude from `Shift+R` |
-| `/R[n]` | Select **exactly n** from the section |
-| `/R[n]-[m]` | Randomly between **n to m** |
-| `/R-[m]` | Randomly between **0 to m** |
-| **`/R-N-M`** | Randomly between **-N to M** (negative = 0 selection, N miss slots, total options = N+M+1) |
-| **`/C`** | **Automatic random update with each Generate button press** |
-> **Example: `Pose /R-8-2 /C`**
-> → Randomly selects **-8 to 2** each time (0 probability ≈72.7%, max=2), reflected immediately with Generate
----
-## Customization Settings (`CONFIG` in `web/index.js`)
-| Variable | Default | Description |
-|-----------------------------|------------|------|
-| `WEIGHT_STEP` | `0.10` | Unit for weight increase/decrease |
-| `minWeight` | `-1.0` | Minimum weight |
-| `maxWeight` | `2.0` | Maximum weight |
-| `COMMENT_FONT_SCALE` | `0.8` | Comment font size ratio |
-| `PROMPT_MAX_LENGTH_DISPLAY` | `30` | Max characters displayed (truncated if exceeded) |
-| `COLOR_PROMPT_ON` | `"#FFF"` | Enabled prompt color |
-| `COLOR_COMMENT_ON` | `"#ADD8E6"` | Enabled comment color |
-| `COLOR_PROMPT_OFF` | `"#AAAAAA"` | Disabled prompt color |
-| `COLOR_COMMENT_OFF` | `"#AAAAAA"` | Disabled comment color |
-| `CommentLine_LineColor` | `"#888"` | Separator line color (`//,//`) |
-| `CommentLine_FontColor` | `"#ADD8E6"` | Separator comment color |
----
-## Installation and Updates
-### 1. Via ComfyUI Manager (Recommended)
-1. Open Manager
-2. Click "Install Custom Nodes"
-3. Search for `PromptSwitch`
-4. Install **ComfyUI-PromptSwitch**
-5. Restart ComfyUI
-### 2. Manual Installation
-1. Navigate to the following folder
-   `/path/to/ComfyUI/custom_nodes`
-2. Run the command
-   `git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git`
-### 3. Update
-1. Navigate to the following folder
-   `/path/to/ComfyUI/custom_nodes/ComfyUI-PromptSwitch`
-2. Run the command
-   `git pull`
----
-## How to Use
-1. Add **PromptSwitch** from node search (`utils` category)
-2. Set **`/R[number] /C`** in the title
-3. **Press "Generate" → Generate images with different prompts each time!**
----
-## Update History
-| Date | Content |
-|------------|------|
-| 25/10/16 | Initial release |
-| 25/10/17 | Added exclusion tags (`/a`, `/v`) |
-| 25/10/20 | Unified weight operations |
-| 25/10/30 | `R` key → Random, `W` key → Reset |
-| 25/10/30 | `/R[number]` expansion |
-| 25/11/05 | Unified tag parsing (composite tags prohibited) |
-| **25/11/07** | **Decisive Update** |
-| | - **`/C` tag: Automatic random update with one Generate** |
-| | - `C` key: `/C` toggle |
-| | - `Shift+C`: Remove `/C` from all nodes |
-| | - `Shift+E`: Toggle edit mode for all nodes (**input prevention**) |
-| | - Fixed edit mode bugs |
-| **25/11/08** | Fully fixed `/C` behavior (executes only once before generation) |
-| **25/11/09** | Implemented comment separator `//,//` |
-| **25/11/10** | **Implemented negative miss slots (`/R-N-M` format)** |
-| | - `/R-3-2` → Adds 3 miss slots, increases 0 selection probability |
-| | - Enhanced probability control (e.g., `/R-8-2` → 0 probability ≈72.7%) |
-| | - Bug fix: Prevent exceeding max |
----
-## Known Bugs
-* **Starts in edit mode and cannot return to normal mode no matter what**
-  (Confirmed on 2025/11/10 with large workflows)
-  Close and reopen ComfyUI in the browser (Ctrl+Shift+R or other cache-clearing reload recommended)
-## Planned Features
-1. Implement wildcard-style random pickup to generate prompts solely on the server
-2. Implement group-based random pickup using separators (e.g., RG0-2)
-3. Implement non-random pickup (e.g., enable next element after 20 generations)
-4. Since it only outputs text, combining with the above could allow model switching or changing output image size each time
----
-## Credits
-This node is a fork and extension of **kambara's ComfyUI-PromptPalette**.
----
-## License
-MIT License
-See the [LICENSE](LICENSE) file for details
+| `/a` | `Shift+A` から除外 |
+| `/v` | `Shift+V` から除外 |
+| `/r` | `Shift+R` から除外 |
+| `/R[n]` | セクションから**ちょうど n 個**選択 |
+| `/R[n]-[m]` | **n 〜 m 個**の間でランダム |
+| `/R-[m]` | **0 〜 m 個** |
+| **`/R-N-M`** | **-N 〜 M 個**の間でランダム（負=0選択、外れ枠N個、総通り数=N+M+1） |
+| **`/C`** | **Generate ボタン1回ごとに自動ランダム更新** |
+> **例：`ポーズ /R-8-2 /C`**
+> → 毎回 **-8〜2個** を自動選択（0確率≈72.7%、max=2）、Generate で即反映

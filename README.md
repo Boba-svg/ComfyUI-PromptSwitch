@@ -1,13 +1,11 @@
 # ComfyUI-PromptSwitch プロンプト作業を劇的に高速化！
 プロンプトのON/OFF切り替えやウェイト調整を、チェックリストのように直感的に行えるカスタムノードです。
 ---
-GitHubで公開された「PromptSwitch」へようこそ！
-これは、**Prompt Palette** のアイデアをベースに、**プロンプト管理と操作性を劇的に改善**したバージョンです。
-日本語の README はここ：
-https://github.com/Boba-svg/ComfyUI-PromptSwitch/blob/main/README_jp.md
-機能の起源を区別するために、以下のように表記しています。
-* **[Original]**：Prompt Palette から受け継いだ基本機能
-* **[Switch]**：PromptSwitch で追加・改善された機能
+GitHubで公開された「PromptSwitch」へようこそ！  
+これは、**Prompt Palette** のアイデアをベースに、**プロンプト管理と操作性を劇的に改善**したバージョンです。  
+機能の起源を区別するために、以下のように表記しています。  
+* **[Original]**：Prompt Palette から受け継いだ基本機能  
+* **[Switch]**：PromptSwitch で追加・改善された機能  
 ---
 ## 主な機能
 ※画像は古い可能性あり。**最新のショートカットは下記参照**（Rキー → ランダム、Wキー → リセット、Cキー → /Cトグルなど）

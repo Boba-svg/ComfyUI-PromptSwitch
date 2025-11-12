@@ -79,7 +79,7 @@ GitHubで公開された「PromptSwitch」へようこそ！
 　　**RUN（実行）ボタン1回でバリエーションを試せる！**
 ### 連続生成との最強コンボ
 > [AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせると、**RUN（実行）1回ごとに自動ランダム更新 × 100回バッチ生成** が可能！  
-> → 詳細は [**連携ガイド**](./COMBO_GUIDE_AUTO_BATCH.md) をチェック！
+> → 詳細は [**連携ガイド**](./COMBO_GUIDE_AUTO_BATCH.md) をチェック！  
 
   ※ComfyUIについているbatch機能（実行ボタンの脇にある数字）を使って、例えば32枚を指定して実行を押しても本機能は一枚ごとにランダムピックアップしてくれません  
   実行ボタンを32回連打する必要がありますが、これを代替してくれるのがAutoBatchRunnerとなります  

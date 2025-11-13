@@ -46,6 +46,21 @@
 // 【2025-11-10 22:45 修正】
 // ・/R-N-M 形式: 負数N個の外れ枠を正しく実装（0選択確率 = N / (N+M+1)）
 // ・例: /R-8-2 → 11通り中8外れ, max=2
+//
+// 【2025-11-14 新機能追加】 /T タグ（Turn: 回ってくる）
+// ・/T → /T1 と同義。カレント行=1
+// ・/Tn → カレント行=n
+// ・/TnMm → カレント行=n, 最大実行数=m, カウント=1
+// ・/TnMm-k → カレント行=n, 最大実行数=m, カウント=k
+// ・生成前（queuePrompt）で：
+//   1. 全行無効化（Aキー挙動）
+//   2. カレント行を有効化（空白・//・//,//はスキップ）
+//   3. タイトル更新：カウント進める or カレント行+1
+// ・/C タグと競合時：/T 優先、/C 無視 + 警告
+// ・編集モード中でも安全（callback 呼び出し禁止）
+// ・描画関数は一切変更せず
+// ・parseNodeTags で /T を許可
+
 import { app } from "../../scripts/app.js";
 const CONFIG = {
     // UIの描画設定
@@ -98,6 +113,7 @@ function parseNodeTags(node) {
     const invalid = normalizedTags.some(tag => {
         if (/^R[\d-]*$/i.test(tag)) return false;
         if (/^[avrc]$/i.test(tag)) return false;
+        if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // /T, /T2, /T2M5, /T2M5-1
         return true;
     });
     if (invalid) {
@@ -335,7 +351,6 @@ function getRTagSelectionRange(node) {
     if (!rTag || rTag === 'r') return [1, 1];
     const value = rTag.substring(1); // "r" を除去
     const dashCount = (value.match(/-/g) || []).length;
-
     if (dashCount === 0) {
         // /R5 → 固定5個
         const count = parseInt(value);
@@ -466,6 +481,127 @@ function randomPickupPrompts(text, node) {
     }
     return newLines.join('\n');
 }
+// ========================================
+// /T タグ解析関数（Turn: 回ってくる）
+// ========================================
+function parseTTag(tag) {
+    if (!tag || !tag.toLowerCase().startsWith('t')) return null;
+    const value = tag.substring(1); // "T" 以降
+    const mMatch = value.match(/M(\d+)/i);
+    const hasM = mMatch !== null;
+    const maxExec = hasM ? parseInt(mMatch[1]) : 1;
+    let current = 1;
+    let count = 1;
+
+    if (value === '') {
+        // /T → current=1
+        return { current: 1, maxExec: 1, count: 1 };
+    }
+
+    const parts = value.split(/M/i);
+    const base = parts[0];
+    const afterM = hasM ? (parts[1] || '') : '';
+
+    // current 解析
+    const baseNum = parseInt(base);
+    if (!isNaN(baseNum) && baseNum > 0) {
+        current = baseNum;
+    }
+
+    // count 解析（Mの後ろに -k）
+    if (afterM) {
+        const countMatch = afterM.match(/-(\d+)$/);
+        if (countMatch) {
+            count = parseInt(countMatch[1]);
+        } else if (afterM !== '') {
+            const num = parseInt(afterM);
+            if (!isNaN(num)) count = num;
+        }
+    }
+
+    if (maxExec < 1 || current < 1 || count < 1) return null;
+    return { current, maxExec, count };
+}
+
+// ========================================
+// /T タグ実行関数（生成前）
+// ========================================
+function applyTTag(node, textWidget, app) {
+    const tags = parseNodeTags(node);
+    const tTag = tags.find(t => t.startsWith('t'));
+    if (!tTag) return false;
+
+    const tInfo = parseTTag(tTag);
+    if (!tInfo) return false;
+
+    const lines = textWidget.value.split('\n');
+    const totalLines = lines.length;
+    if (totalLines === 0) return false;
+
+    let { current, maxExec, count } = tInfo;
+    current--; // 0-indexed
+
+    // [1] 全行無効化
+    let newText = deactivatePromptText(textWidget.value);
+
+    // [2] カレント行を有効化（スキップ条件）
+    let validLineFound = false;
+    let attempts = 0;
+    while (!validLineFound && attempts < totalLines) {
+        if (current >= totalLines) current = 0;
+
+        const line = lines[current];
+        const trimmed = line.trimStart();
+        const isEmpty = trimmed === '';
+        const isCommentOnly = trimmed === '//';
+        const isSeparator = trimmed.match(/^(\s*\/\/\s*,\s*\/\/\s*)/);
+
+        if (!isEmpty && !isCommentOnly && !isSeparator) {
+            validLineFound = true;
+            const leadingSpaces = line.match(/^(\s*)/)[0];
+            const cleanLine = trimmed.replace(/^\/\/\s*/, '');
+            newText = newText.split('\n');
+            newText[current] = leadingSpaces + cleanLine;
+            newText = newText.join('\n');
+        } else {
+            current++;
+            attempts++;
+        }
+    }
+
+    // 更新
+    textWidget.value = newText;
+
+    // [3] タイトル更新
+    let nextCurrent = current + 1;
+    let nextCount = count + 1;
+    let newTag;
+
+    if (nextCount > maxExec) {
+        nextCount = 1;
+        nextCurrent = (nextCurrent >= totalLines) ? 1 : nextCurrent + 1;
+        newTag = `/T${nextCurrent}M${maxExec}-1`;
+    } else {
+        newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
+    }
+
+    // /C 競合警告
+    if (tags.includes('c')) {
+        console.warn(`[PromptSwitch] /T と /C が競合: /T を優先します (Node: ${node.title})`);
+    }
+
+    // タイトル更新（/T 部分のみ置換）
+    const title = node.title || "";
+    const newTitle = title.replace(/\/T[^\/\s]*/g, '').trim() + ' ' + newTag;
+    node.title = newTitle.trim();
+
+    // 再描画（callback 呼び出し禁止）
+    node.setDirtyCanvas(true, true);
+    app.graph.setDirtyCanvas(true, true);
+
+    return true;
+}
+
 // ========================================
 // クリック処理関数群
 // ========================================
@@ -690,6 +826,7 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
             height: CONFIG.lineHeight,
         });
     }
+ 
 }
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
@@ -974,20 +1111,22 @@ app.registerExtension({
                     const coreHelpLines = [
                         `PromptSwitch - 主要なショートカット`,
                         `----------------------------------------`,
-                        `F1 : このヘルプを表示`,
-                        `F2/E : 編集モード切替 (ノードの枠のDblClickでも可)`,
-                        `Shift+E : 全ノード編集モードトグル（既に編集中のものは維持）`,
-                        `A : All Prompts (選択ノードの全消し優先トグル切替)`,
-                        `Shift+A: 全ノードを一括で全無効化 (除外: /a)`,
-                        `R : Random Pickup (セクションからランダム選択)`,
+                        ` F1 : このヘルプを表示`,
+                        ` F2/E : 編集モード切替 (ノードの枠のDblClickでも可)`,
+                        ` Shift+E : 全ノード編集モードトグル（既に編集中のものは維持）`,
+                        ` A : All Prompts (選択ノードの全消し優先トグル切替)`,
+                        ` Shift+A: 全ノードを一括で全無効化 (除外: /a)`,
+                        ` R : Random Pickup (セクションからランダム選択)`,
                         ` -> タグ: /R2 /R0-5 /R-8-2 (ノードタイトル末尾)`,
-                        `   /R0-5: 0~5ランダム(6通り), /R-8-2: -8~2=0~2+外れ8(11通り,負=0選択)`,
-                        `Shift+R: 全ノード一括ランダム (除外: /r)`,
-                        `W : 全てのウェイトをリセット (1.0)`,
-                        `V : Visible/Invisible (選択ノードのトグル)`,
-                        `Shift+V: 全ノード一括トグル (除外: /v)`,
-                        `C : /C タグのトグル（生成前に自動ランダム）`,
-                        `Shift+C : 全ノードから /C タグを一括削除`,
+                        ` /R0-5: 0~5ランダム(6通り), /R-8-2: -8~2=0~2+外れ8(11通り,負=0選択)`,
+                        ` Shift+R: 全ノード一括ランダム (除外: /r)`,
+                        ` W : 全てのウェイトをリセット (1.0)`,
+                        ` V : Visible/Invisible (選択ノードのトグル)`,
+                        ` Shift+V: 全ノード一括トグル (除外: /v)`,
+                        ` C : /C タグのトグル（生成前に自動ランダム）`,
+                        ` Shift+C : 全ノードから /C タグを一括削除`,
+                        ` T : /T タグ（順番に回す）`,
+                        ` -> /T → /T2, /T2M3-1 → /T2M3-2 → /T3M3-1`,
                         ``,
                         `【タグは / で区切ってください】`,
                         `例: おまじない/r/a/C　（スペースなしでもOK）`,
@@ -1131,14 +1270,26 @@ app.registerExtension({
 });
 // ===============================================
 // 生成前に1回だけランダム（/C タグ）
+// /T タグを先に処理（/Cより優先）
 // onAfterExecutePrompt での再ランダムは完全に削除
 // ===============================================
 if (typeof app !== 'undefined') {
     const originalQueuePrompt = app.queuePrompt;
     app.queuePrompt = async function (...args) {
-        // 生成前に /C タグ付きノードを1回だけランダムピック
+        // /T タグ処理（/Cより先に）
+        const tNodes = app.graph._nodes
+            .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).some(t => t.startsWith('t')));
+        for (const node of tNodes) {
+            const w = findTextWidget(node);
+            if (w) {
+                applyTTag(node, w, app);
+            }
+        }
+
+        // /C タグ処理（/T があるノードはスキップ）
         app.graph._nodes
             .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
+            .filter(n => !parseNodeTags(n).some(t => t.startsWith('t')))  // /T があるならスキップ
             .forEach(n => {
                 const w = findTextWidget(n);
                 if (w && typeof randomPickupPrompts === 'function') {
@@ -1147,10 +1298,11 @@ if (typeof app !== 'undefined') {
                     n.setDirtyCanvas(true, true);
                 }
             });
+
         app.graph.setDirtyCanvas(true, true);
         return await originalQueuePrompt.apply(this, args);
     };
-    // 生成後の自動ランダムは完全に無効化
+
     const originalAfterExec = app.onAfterExecutePrompt || function() {};
     app.onAfterExecutePrompt = function() {
         return originalAfterExec.apply(this, arguments);

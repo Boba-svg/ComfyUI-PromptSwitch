@@ -90,9 +90,9 @@ In non-editing mode, each line is displayed like a checklist.
 
 ### Ultimate Combo with Continuous Generation
 > By combining it with [AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner), you can achieve **Automatic Random Update on Every RUN × 100 Batch Generation!**
-> → Check the [**Integration Guide**](./COMBO_GUIDE_AUTO_BATCH.md) for details!
+> → Check the [**Integration Guide**](./COMBO_GUIDE_AUTO_BATCH.md) for details! 
 
-\* **ComfyUI's standard batch feature (the number next to the Run button) does not perform random pickup for each image, even if you specify 32 images.**
+* **ComfyUI's standard batch feature (the number next to the Run button) does not perform random pickup for each image, even if you specify 32 images.**
 → The standard feature only generates **32 consecutive images with the same prompt.**
 To leverage the ```/C``` tag's automatic random update, you would need to **manually press the "Generate" button 32 times.**
 **AutoBatchRunner** automates this process with **1 click**.

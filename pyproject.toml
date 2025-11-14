@@ -3,10 +3,10 @@
 name = "comfyui-promptswitch" 
 
 # 必須: 現在のバージョン。semantic versioning (セマンティックバージョニング)に従い、0.1.0から始めるのが一般的。
-version = "0.2.9" 
+version = "0.3.0" 
 
 # 推奨: Managerのリストに表示される短い説明。
-description = "プロンプトを切り替えるためのカスタムノード (Prompt Switch)" 
+description = "プロンプトをワンクリックで切り替えるためのカスタムノード (Prompt Switch)" 
 
 # 推奨: Pythonの最低バージョン。通常ComfyUIの推奨バージョンに合わせます。
 requires-python = ">=3.10" 

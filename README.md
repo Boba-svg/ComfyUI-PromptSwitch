@@ -76,7 +76,7 @@ GitHubで公開された「PromptSwitch」へようこそ！
 → 外れ枠8個 + 最大2個選択、生成ごとに自動で変化
 
 ### 連続生成との最強コンボ
-[AutoBatchRunner](https://github.com/Boba-svg/ComfyUI_AutoBatchRunner) と組み合わせれば  
+[AutoBatchRunner](https://github.com/Boba-svg/ComfyUI-AutoBatchRunner) と組み合わせれば  
 **1クリックで100回分、毎回違うプロンプトで生成** が可能！
 
 ---

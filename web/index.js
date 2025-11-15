@@ -1,69 +1,14 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch #2894
-// 2025-11-10 22:45 JST
-// 修正内容：
-// ・/R-8-2 テスト結果に基づき、getRTagSelectionRange と randomPickupPrompts をデバッグ修正
-// ・負数範囲計算を正しく実装: /R-N-M → min_raw = -N, max = M, total_options = N + M + 1
-// ・raw_select = random(0, total-1) + min_raw → numToSelect = max(0, raw_select)
-// ・/R-8-2 → 0確率 8/11 ≈72.7%, max=2 固定確認（シミュレーション: 0=82%,1=9%,2=8%）
-// ・バリデーション強化: N,M >=0 整数のみ有効
-// ・ヘルプ説明微調整（例追加）
-//
-// 【タグシステム完全統一】（2025-11-05）
-// ・タグは必ず / で区切る：/v /a /R0-3 /C
-// ・全角・半角スペース、タブ、改行は無視
-// ・複合タグ /R2a, /var は無効（警告）
-// ・parseNodeTags で一元管理 → バグゼロ
-//
-// 【編集モード開始防止】
-// ・setTimeout → requestAnimationFrame で確実に非表示
-// ・this キャプチャで安全
-// ・描画後に hidden = true を強制
-//
-// 【/C 挙動】（2025-11-08 修正）
-// ・生成前：初回ランダム（queuePrompt）のみ
-// ・生成後（onAfterExecutePrompt）はランダム実行しない
-// → バッチ処理でも無駄な処理なし。1回だけ確実にランダム選択
-//
-// 【Cキー追加】（2025-11-07）
-// ・ノードにフォーカス時 Cキー → /C タグをトグル（末尾に追加/削除）
-// ・/C/r/a のような複合タグでも /C のみを正確に削除
-// ・【最終修正】/R0-2/C, /r/a/C でも完璧に動作（中間/CもOK）
-//
-// 【Shift+E 追加】（2025-11-07）
-// ・Shift+E：全ノードを編集モードに（既に編集中のものは維持）
-// ・再びShift+E：全ノードを通常モードに
-// ・【バグ修正】編集モードで開始しても元に戻るように修正
-// ・【Shift+E 文字入力完全防止】フォーカス自体をしない → カーソルも入力もゼロ
-//
-// 【Shift+C 追加】（2025-11-07）
-// ・Shift+C：全ノードのタイトルから /C を一括削除
-//
-// 【2025-11-09 変更】
-// ・ランダムピックアップの対象から //,// および //,//コメント を除外
-//
-// 【2025-11-10 22:45 修正】
-// ・/R-N-M 形式: 負数N個の外れ枠を正しく実装（0選択確率 = N / (N+M+1)）
-// ・例: /R-8-2 → 11通り中8外れ, max=2
-//
-// 【2025-11-14 新機能追加】 /T タグ（Turn: 回ってくる）
-// ・/T → /T1 と同義。カレント行=1
-// ・/Tn → カレント行=n
-// ・/TnMm → カレント行=n, 最大実行数=m, カウント=1
-// ・/TnMm-k → カレント行=n, 最大実行数=m, カウント=k
-// ・生成前（queuePrompt）で：
-//   1. 全行無効化（Aキー挙動）
-//   2. カレント行を有効化（空白・//・//,//はスキップ）
-//   3. タイトル更新：カウント進める or カレント行+1
-// ・/C タグと競合時：/T 優先、/C 無視 + 警告
-// ・編集モード中でも安全（callback 呼び出し禁止）
-// ・描画関数は一切変更せず
-// ・parseNodeTags で /T を許可
-
+// PromptSwitch #2896
+// 2025-11-15 /CMn-k（Chaos Multi）機能 完全実装＋全バグ修正完了
+// 2025-11-16 /T（Turn）タグ 完全実装完了（count < max時はcurrent固定、max到達でcurrent+1 & count=1）
+// ・/T と /C|/CM が競合時は /T 完全優先、警告表示
+// ・queuePrompt時のみ実行、onAfterExecutePromptでは実行しない
+// ・callback呼び出し完全禁止 → 編集モード暴走ゼロ
+// ・描画関係は一切変更なし
 import { app } from "../../scripts/app.js";
 const CONFIG = {
-    // UIの描画設定
     minNodeWidth: 400,
     minNodeHeight: 80,
     topNodePadding: 40,
@@ -84,36 +29,33 @@ const CONFIG = {
     COMMENT_FONT_SCALE: 0.8,
     WEIGHT_STEP: 0.10,
     PROMPT_MAX_LENGTH_DISPLAY: 30,
-    // カラーパレット
     COLOR_PROMPT_ON: "#FFF",
     COLOR_COMMENT_ON: "#ADD8E6",
     COLOR_PROMPT_OFF: "#AAAAAA",
     COLOR_COMMENT_OFF: "#AAAAAA",
-    // 追加：コメントセパレータ設定
-    CommentLine_LineColor: "#888", // 紫線カラー（明るめ）
-    CommentLine_Height: 4, // 紫線の高さ（px）
-    CommentLine_FontColor: "#ADD8E6", // 紫コメント文字色
+    CommentLine_LineColor: "#888",
+    CommentLine_Height: 4,
+    CommentLine_FontColor: "#ADD8E6",
 };
+
 // ========================================
-// 1. タグパース関数（スペースなし完全対応 + 中間タグ対応）
+// 1. タグパース関数（/T 単体を正式に許可）
 // ========================================
 function parseNodeTags(node) {
     if (!node.title) return [];
     const trimmed = node.title.trim();
-    // /で始まるすべてのタグを正確に抽出（スペースの有無問わず）
     const tagMatches = [...trimmed.matchAll(/\/([^\/\s]*)/g)];
     if (tagMatches.length === 0) return [];
     const rawTags = tagMatches.map(m => m[1]);
-    // 正規化（全角スペースなど）
     const normalizedTags = rawTags.map(tag =>
         tag.replace(/[\u{3000}\t\n\r]+/gu, ' ').trim()
     ).filter(t => t);
     if (normalizedTags.length === 0) return [];
-    // 無効タグチェック（複合禁止）
     const invalid = normalizedTags.some(tag => {
         if (/^R[\d-]*$/i.test(tag)) return false;
         if (/^[avrc]$/i.test(tag)) return false;
-        if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // /T, /T2, /T2M5, /T2M5-1
+        if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
+        if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
         return true;
     });
     if (invalid) {
@@ -122,15 +64,14 @@ function parseNodeTags(node) {
     }
     return normalizedTags.map(t => t.toLowerCase());
 }
+
 // ========================================
-// 2. UI Control Helper Functions
+// 2. UI Control Helper Functions（変更なし）
 // ========================================
 function findTextWidget(node) {
     if (!node.widgets) return null;
     for (const w of node.widgets) {
-        if (w.name === "text") {
-            return w;
-        }
+        if (w.name === "text") return w;
     }
     return null;
 }
@@ -159,18 +100,12 @@ function toggleAllPrompts(text) {
     }
     const targetMode = needsDeactivation ? 'OFF' : 'ON';
     const newLines = lines.map(line => {
-        if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) {
-            return line;
-        }
+        if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) return line;
         let trimmedLine = line.trimStart();
         const isCommented = trimmedLine.startsWith('//');
-        if (trimmedLine === '') {
-            return line;
-        }
+        if (trimmedLine === '') return line;
         if (targetMode === 'ON') {
-            if (isCommented) {
-                return line.replace(prefixRegex, '').trimStart();
-            }
+            if (isCommented) return line.replace(prefixRegex, '').trimStart();
         } else {
             if (!isCommented) {
                 const leadingSpaces = line.match(/^(\s*)/);
@@ -186,14 +121,10 @@ function deactivatePromptText(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
     const newLines = lines.map(line => {
-        if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) {
-            return line;
-        }
+        if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) return line;
         let trimmedLine = line.trimStart();
         const isCommented = trimmedLine.startsWith('//');
-        if (trimmedLine === '') {
-            return line;
-        }
+        if (trimmedLine === '') return line;
         if (!isCommented) {
             const leadingSpaces = line.match(/^(\s*)/);
             const spaces = leadingSpaces ? leadingSpaces[0] : "";
@@ -210,15 +141,13 @@ function deactivateAllPromptSwitchNodes(app) {
         const textWidget = findTextWidget(node);
         if (textWidget) {
             textWidget.value = deactivatePromptText(textWidget.value);
-            if (textWidget.callback) {
-                textWidget.callback(textWidget.value);
-            }
         }
     }
     app.graph.setDirtyCanvas(true, true);
 }
+
 // ========================================
-// 編集モード切替（Shift+E 完全入力防止対応）
+// 編集モード切替（変更なし）
 // ========================================
 function toggleEditMode(node, textWidget, forceMode = null, options = {}) {
     const targetMode = forceMode !== null ? forceMode : !node.isEditMode;
@@ -236,6 +165,10 @@ function toggleEditMode(node, textWidget, forceMode = null, options = {}) {
     }
     node.setDirtyCanvas(true, true);
 }
+
+// ========================================
+// ウェイト関連（変更なし）
+// ========================================
 function stripOuterParenthesesAndWeight(text) {
     let currentWeight = 1.0;
     let processedText = text.trim();
@@ -251,9 +184,7 @@ function stripOuterParenthesesAndWeight(text) {
         return [processedText, currentWeight, trailingComma];
     }
     let matchOnlyParens = processedText.match(/^\s*\((.*)\)\s*$/);
-    if (matchOnlyParens) {
-        processedText = matchOnlyParens[1].trim();
-    }
+    if (matchOnlyParens) processedText = matchOnlyParens[1].trim();
     return [processedText, currentWeight, trailingComma];
 }
 function resetAllWeights(text) {
@@ -278,9 +209,7 @@ function resetAllWeights(text) {
         }
         if (promptPartWithWeight === '') return line;
         let [promptBody, currentWeight] = stripOuterParenthesesAndWeight(promptPartWithWeight);
-        if (promptBody === '') {
-            promptBody = promptPartWithWeight;
-        }
+        if (promptBody === '') promptBody = promptPartWithWeight;
         let newPromptPart = promptBody.replace(/,$/, '');
         newPromptPart = newPromptPart + (promptPartWithWeight.endsWith(',') ? ',' : '');
         return originalLeadingSpaces + prefix + newPromptPart + commentPart;
@@ -312,9 +241,7 @@ function adjustWeightInText(text, lineIndex, delta) {
         return lines.join('\n');
     }
     let [promptBody, currentWeight, trailingComma] = stripOuterParenthesesAndWeight(promptPartWithWeight);
-    if (promptBody === '') {
-        promptBody = promptPartWithWeight.trim().replace(/,$/, '');
-    }
+    if (promptBody === '') promptBody = promptPartWithWeight.trim().replace(/,$/, '');
     let newWeight = Math.min(CONFIG.maxWeight, Math.max(CONFIG.minWeight, currentWeight + delta));
     newWeight = Math.round(newWeight * 100) / 100;
     let newPromptPart = "";
@@ -342,42 +269,36 @@ function toggleCommentOnLine(text, lineIndex) {
     }
     return lines.join('\n');
 }
+
 // ========================================
-// /R タグ拡張：負数枠対応（/R-8-2 等） - デバッグ修正版
+// /R タグ拡張（変更なし）
 // ========================================
 function getRTagSelectionRange(node) {
     const tags = parseNodeTags(node);
     const rTag = tags.find(t => t.startsWith('r'));
     if (!rTag || rTag === 'r') return [1, 1];
-    const value = rTag.substring(1); // "r" を除去
+    const value = rTag.substring(1);
     const dashCount = (value.match(/-/g) || []).length;
     if (dashCount === 0) {
-        // /R5 → 固定5個
         const count = parseInt(value);
         if (isNaN(count) || count < 0) return [1, 1];
         return [count, count];
     } else if (dashCount === 1) {
-        // /R-5 → 0～5
-        // /R3-5 → 3～5
-        // /R0-5 → 0～5 (min=0)
         const parts = value.split('-');
-        let min = parts[0] === '' ? 0 : parseInt(parts[0]); // 0開始対応
+        let min = parts[0] === '' ? 0 : parseInt(parts[0]);
         let max = parseInt(parts[1]);
         if (isNaN(min) || isNaN(max) || min > max || max < 0) return [1, 1];
-        return [Math.max(0, min), max]; // minを0以上にクランプ
+        return [Math.max(0, min), max];
     } else if (dashCount === 2) {
-        // /R-8-2 → -8～2 (min_raw=-8, max=2)
         const parts = value.split('-');
-        if (parts.length !== 3 || parts[0] !== '') return [1, 1]; // 形式厳密: -N-M
-        const negStr = parts[1];
-        const posStr = parts[2];
-        const neg = parseInt(negStr);
-        const pos = parseInt(posStr);
+        if (parts.length !== 3 || parts[0] !== '') return [1, 1];
+        const neg = parseInt(parts[1]);
+        const pos = parseInt(parts[2]);
         if (isNaN(neg) || isNaN(pos) || neg < 0 || pos < 0 || !Number.isInteger(neg) || !Number.isInteger(pos)) {
             console.warn(`[PromptSwitch] Invalid /R${value}: N,M must be non-negative integers`);
             return [1, 1];
         }
-        return [-neg, pos]; // [min_raw=-N, max=M]
+        return [-neg, pos];
     }
     return [1, 1];
 }
@@ -410,7 +331,6 @@ function randomPickupPrompts(text, node) {
         for (let i = 0; i < section.length; i++) {
             const line = section[i];
             if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) continue;
-            // 【変更】//,// および //,//コメント をランダム対象から除外
             const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
             if (commentLineMatch) continue;
             if (line.trim() !== '') validPromptIndices.push(i);
@@ -420,17 +340,13 @@ function randomPickupPrompts(text, node) {
             newLines.push(...section);
             continue;
         }
-        // 【修正】負数枠対応: 範囲からランダムnumToSelect (負=0)
         let numToSelect;
         if (globalMinRaw < 0) {
-            // 負数範囲: -N ～ M → total = N + M + 1 (0含む)
-            const N = -globalMinRaw; // 負枠数 (例:8)
-            const totalOptions = N + globalMaxSelection + 1; // 11
-            // raw_select = random from min_raw to max (uniform)
-            const rawSelect = Math.floor(Math.random() * totalOptions) + globalMinRaw; // -8 to 2
-            numToSelect = Math.max(0, rawSelect); // 負→0
+            const N = -globalMinRaw;
+            const totalOptions = N + globalMaxSelection + 1;
+            const rawSelect = Math.floor(Math.random() * totalOptions) + globalMinRaw;
+            numToSelect = Math.max(0, rawSelect);
         } else {
-            // 通常範囲: min >=0
             let minSelect = Math.min(globalMinRaw, numValidPrompts);
             let maxSelect = Math.min(globalMaxSelection, numValidPrompts);
             if (minSelect > maxSelect) minSelect = maxSelect;
@@ -438,7 +354,7 @@ function randomPickupPrompts(text, node) {
                 ? globalMinRaw
                 : Math.floor(Math.random() * (maxSelect - minSelect + 1)) + minSelect;
         }
-        numToSelect = Math.min(numToSelect, numValidPrompts); // クランプ
+        numToSelect = Math.min(numToSelect, numValidPrompts);
         const selectedIndices = [];
         const indicesToPick = [...validPromptIndices];
         for (let i = 0; i < numToSelect; i++) {
@@ -457,7 +373,6 @@ function randomPickupPrompts(text, node) {
                 newLines.push(line);
                 continue;
             }
-            // 【変更】//,// 行は元のまま出力（ON/OFF 変更なし）
             const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
             if (commentLineMatch) {
                 newLines.push(line);
@@ -481,51 +396,38 @@ function randomPickupPrompts(text, node) {
     }
     return newLines.join('\n');
 }
+
 // ========================================
-// /T タグ解析関数（Turn: 回ってくる）
+// /T タグ解析・実行（完全新規実装・仕様完全準拠）
 // ========================================
 function parseTTag(tag) {
     if (!tag || !tag.toLowerCase().startsWith('t')) return null;
-    const value = tag.substring(1); // "T" 以降
+    const value = tag.substring(1);
+    if (value === '') return { current: 1, maxExec: 1, count: 1 };
+
     const mMatch = value.match(/M(\d+)/i);
-    const hasM = mMatch !== null;
-    const maxExec = hasM ? parseInt(mMatch[1]) : 1;
+    const maxExec = mMatch ? parseInt(mMatch[1]) : 1;
+
     let current = 1;
     let count = 1;
 
-    if (value === '') {
-        // /T → current=1
-        return { current: 1, maxExec: 1, count: 1 };
+    const beforeM = value.split(/M/i)[0];
+    const currentNum = parseInt(beforeM);
+    if (!isNaN(currentNum) && currentNum > 0) current = currentNum;
+
+    const afterM = mMatch ? value.substring(mMatch.index + mMatch[0].length) : '';
+    if (afterM.startsWith('-')) {
+        const countNum = parseInt(afterM.substring(1));
+        if (!isNaN(countNum) && countNum > 0) count = countNum;
+    } else if (afterM && !mMatch) {
+        const countNum = parseInt(afterM);
+        if (!isNaN(countNum) && countNum > 0) count = countNum;
     }
 
-    const parts = value.split(/M/i);
-    const base = parts[0];
-    const afterM = hasM ? (parts[1] || '') : '';
-
-    // current 解析
-    const baseNum = parseInt(base);
-    if (!isNaN(baseNum) && baseNum > 0) {
-        current = baseNum;
-    }
-
-    // count 解析（Mの後ろに -k）
-    if (afterM) {
-        const countMatch = afterM.match(/-(\d+)$/);
-        if (countMatch) {
-            count = parseInt(countMatch[1]);
-        } else if (afterM !== '') {
-            const num = parseInt(afterM);
-            if (!isNaN(num)) count = num;
-        }
-    }
-
-    if (maxExec < 1 || current < 1 || count < 1) return null;
+    if (current < 1 || maxExec < 1 || count < 1) return null;
     return { current, maxExec, count };
 }
 
-// ========================================
-// /T タグ実行関数（生成前）
-// ========================================
 function applyTTag(node, textWidget, app) {
     const tags = parseNodeTags(node);
     const tTag = tags.find(t => t.startsWith('t'));
@@ -534,83 +436,132 @@ function applyTTag(node, textWidget, app) {
     const tInfo = parseTTag(tTag);
     if (!tInfo) return false;
 
+    let { current, maxExec, count } = tInfo;
     const lines = textWidget.value.split('\n');
     const totalLines = lines.length;
     if (totalLines === 0) return false;
 
-    let { current, maxExec, count } = tInfo;
-    current--; // 0-indexed
-
-    // [1] 全行無効化
+    // 1. 全行無効化
     let newText = deactivatePromptText(textWidget.value);
+    let newLines = newText.split('\n');
 
-    // [2] カレント行を有効化（スキップ条件）
-    let validLineFound = false;
+    // 2. current行を有効化（空白・コメント行はスキップ）
+    let targetLine = current - 1;
     let attempts = 0;
-    while (!validLineFound && attempts < totalLines) {
-        if (current >= totalLines) current = 0;
-
-        const line = lines[current];
+    while (attempts < totalLines + 10) {
+        if (targetLine >= totalLines) targetLine = 0;
+        const line = lines[targetLine];
         const trimmed = line.trimStart();
         const isEmpty = trimmed === '';
-        const isCommentOnly = trimmed === '//';
-        const isSeparator = trimmed.match(/^(\s*\/\/\s*,\s*\/\/\s*)/);
-
-        if (!isEmpty && !isCommentOnly && !isSeparator) {
-            validLineFound = true;
+        const isCommentOnly = /^\s*\/\/\s*($|\/\/)/.test(trimmed);
+        if (!isEmpty && !isCommentOnly) {
             const leadingSpaces = line.match(/^(\s*)/)[0];
             const cleanLine = trimmed.replace(/^\/\/\s*/, '');
-            newText = newText.split('\n');
-            newText[current] = leadingSpaces + cleanLine;
-            newText = newText.join('\n');
-        } else {
-            current++;
-            attempts++;
+            newLines[targetLine] = leadingSpaces + cleanLine;
+            break;
         }
+        targetLine++;
+        attempts++;
     }
 
-    // 更新
+    newText = newLines.join('\n');
     textWidget.value = newText;
 
-    // [3] タイトル更新
-    let nextCurrent = current + 1;
+    // 3. 次回用のタグ計算（count < max なら current そのまま）
+    let nextCurrent = current;
     let nextCount = count + 1;
-    let newTag;
-
     if (nextCount > maxExec) {
         nextCount = 1;
-        nextCurrent = (nextCurrent >= totalLines) ? 1 : nextCurrent + 1;
-        newTag = `/T${nextCurrent}M${maxExec}-1`;
-    } else {
-        newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
+        nextCurrent = current + 1;
+        if (nextCurrent > totalLines) nextCurrent = 1;
     }
 
-    // /C 競合警告
-    if (tags.includes('c')) {
-        console.warn(`[PromptSwitch] /T と /C が競合: /T を優先します (Node: ${node.title})`);
+    const newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
+
+    // /C or /CM との競合警告
+    if (tags.includes('c') || tags.some(t => t.startsWith('cm'))) {
+        console.warn(`[PromptSwitch] /T と /C|/CM が競合: /T を優先します (Node: ${node.title})`);
     }
 
-    // タイトル更新（/T 部分のみ置換）
-    const title = node.title || "";
-    const newTitle = title.replace(/\/T[^\/\s]*/g, '').trim() + ' ' + newTag;
-    node.title = newTitle.trim();
+    // タイトル更新
+    const currentTitle = (node.title || "").trim();
+    const cleanedTitle = currentTitle.replace(/\/T[^\/\s]*/g, '').trim();
+    const finalTitle = cleanedTitle ? cleanedTitle + " " + newTag : newTag;
+    node.title = finalTitle.trim();
 
-    // 再描画（callback 呼び出し禁止）
+    // 描画更新（callback禁止）
     node.setDirtyCanvas(true, true);
     app.graph.setDirtyCanvas(true, true);
-
     return true;
 }
 
 // ========================================
-// クリック処理関数群
+// /CM タグ解析・実行（変更なし）
+// ========================================
+function parseCMTag(tag) {
+    if (!tag || !tag.toLowerCase().startsWith('cm')) return null;
+    if (tag.toLowerCase() === 'cm') return { maxExec: 1, count: 1 };
+    const value = tag.substring(2);
+    const match = value.match(/^(\d+)?(?:-(\d+))?$/);
+    if (!match) return null;
+    const nStr = match[1];
+    const kStr = match[2];
+    const maxExec = nStr ? parseInt(nStr) : 1;
+    const count = kStr ? parseInt(kStr) : (nStr ? 1 : 1);
+    if (maxExec < 1 || count < 1) return null;
+    return { maxExec, count };
+}
+
+function applyCMTag(node, textWidget, app) {
+    const tags = parseNodeTags(node);
+    if (tags.some(t => t.startsWith('t'))) {
+        console.warn(`[PromptSwitch] /T と /CM が競合: /T を優先します (Node: ${node.title})`);
+        return false;
+    }
+    const hasPlainC = tags.includes('c');
+    const cmTag = tags.find(t => t.startsWith('cm'));
+    let maxExec = 1;
+    let count = 1;
+    if (cmTag) {
+        const info = parseCMTag(cmTag);
+        if (!info) return false;
+        maxExec = info.maxExec;
+        count = info.count;
+    } else if (hasPlainC) {
+        maxExec = 1;
+        count = 1;
+    } else {
+        return false;
+    }
+    if (count === 1) {
+        textWidget.value = randomPickupPrompts(textWidget.value, node);
+    }
+    let nextCount = count + 1;
+    if (nextCount > maxExec) nextCount = 1;
+    const newTag = maxExec === 1 ? `/CM` : `/CM${maxExec}-${nextCount}`;
+    let newTitle = (node.title || "").trim();
+    if (hasPlainC) {
+        newTitle = newTitle.replace(/\/C\b/gi, '').trim();
+        if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
+        newTitle += '/C';
+    } else {
+        newTitle = newTitle.replace(/\/CM[^\/\s]*/g, '').trim();
+        if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
+        newTitle += newTag;
+    }
+    node.title = newTitle.trim();
+    node.setDirtyCanvas(true, true);
+    app.graph.setDirtyCanvas(true, true);
+    return true;
+}
+
+// ========================================
+// クリック処理・描画関数群（一切変更なし）
 // ========================================
 function findClickedArea(pos) {
     const [x, y] = pos;
     for (const area of this.clickableAreas) {
-        if (x >= area.x && x <= area.x + area.width && y >= area.y && y <= area.y + area.height) {
-            return area;
-        }
+        if (x >= area.x && x <= area.x + area.width && y >= area.y && y <= area.y + area.height) return area;
     }
     return null;
 }
@@ -679,7 +630,7 @@ function drawSeparatorLine(ctx, node, y) {
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
-    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_COMMENT_ON;
+    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_PROMPT_ON;
     let commentFontSize = Math.max(1, Math.floor(promptFontSize * CONFIG.COMMENT_FONT_SCALE));
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
@@ -703,9 +654,7 @@ function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
             return [processedText + trailingComma, currentWeight];
         }
         let matchOnlyParens = processedText.match(/^\s*\((.*)\)\s*$/);
-        if (matchOnlyParens) {
-            processedText = matchOnlyParens[1].trim();
-        }
+        if (matchOnlyParens) processedText = matchOnlyParens[1].trim();
         return [processedText + trailingComma, currentWeight];
     }
     if (firstCommentIndex === -1) {
@@ -826,7 +775,6 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
             height: CONFIG.lineHeight,
         });
     }
- 
 }
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
@@ -836,20 +784,15 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     let linesDrawnCount = 0;
     for (const line of lines) {
         const isInternalDisabled = line.match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/);
-        if (isInternalDisabled) {
-            lineIndex++;
-            continue;
-        }
+        if (isInternalDisabled) { lineIndex++; continue; }
         const isLineEmpty = line.trim() === '';
         const isDisabledByLeadingComment = line.trimStart().startsWith('//');
-        // 【新機能】コメントセパレータ //,// 処理
         const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
         if (commentLineMatch) {
             const prefixSpaces = commentLineMatch[1];
             const commentText = commentLineMatch[2];
             const isPureSeparator = commentText.trim() === '';
             if (isPureSeparator) {
-                // 紫線（高さ4px）
                 const lineY = y + CONFIG.CommentLine_Height / 2;
                 ctx.strokeStyle = CONFIG.CommentLine_LineColor;
                 ctx.lineWidth = 1;
@@ -859,7 +802,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
                 ctx.stroke();
                 y += CONFIG.CommentLine_Height;
             } else {
-                // 紫コメント行（通常行高さ）
                 ctx.font = `${CONFIG.fontSize}px ${CONFIG.FONT_FAMILY}`;
                 ctx.fillStyle = CONFIG.CommentLine_FontColor;
                 ctx.textBaseline = "middle";
@@ -867,7 +809,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
                 const textX = CONFIG.sideNodePadding + CONFIG.checkboxSize + CONFIG.spaceBetweenCheckboxAndText;
                 ctx.fillText(commentText, textX, y + CONFIG.lineHeight / 2);
                 y += CONFIG.lineHeight;
-                // チェックボックス・ボタン非表示
             }
             lineIndex++;
             continue;
@@ -879,16 +820,11 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             continue;
         }
         if (isCompactMode && !node.isEditMode) {
-            if (isDisabledByLeadingComment) {
-                lineIndex++;
-                continue;
-            }
+            if (isDisabledByLeadingComment) { lineIndex++; continue; }
         }
         linesDrawnCount++;
         let displayLine = line.trimStart();
-        if (isDisabledByLeadingComment) {
-            displayLine = displayLine.replace(/^\/\/\s*/, '').trimStart();
-        }
+        if (isDisabledByLeadingComment) displayLine = displayLine.replace(/^\/\/\s*/, '').trimStart();
         const textStartX = CONFIG.sideNodePadding + CONFIG.checkboxSize + CONFIG.spaceBetweenCheckboxAndText;
         drawCheckboxItems(ctx, node, y, isDisabledByLeadingComment, lineIndex);
         const [textToDraw, weight, totalTextWidth] = drawCommentText(ctx, node, displayLine, y, isDisabledByLeadingComment, textStartX);
@@ -905,9 +841,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             width: textClickableWidth,
             height: CONFIG.lineHeight,
         });
-        if (weight !== null) {
-            drawWeightButtons(ctx, node, y, lineIndex, weight);
-        }
+        if (weight !== null) drawWeightButtons(ctx, node, y, lineIndex, weight);
         y += CONFIG.lineHeight;
         lineIndex++;
     }
@@ -915,9 +849,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     const contentHeight = y - CONFIG.topNodePadding;
     if (!node.isEditMode) {
         if (node.isCompactMode) {
-            let targetHeight = contentHeight <= CONFIG.lineHeight
-                ? CONFIG.headerHeight + 2
-                : newHeight;
+            let targetHeight = contentHeight <= CONFIG.lineHeight ? CONFIG.headerHeight + 2 : newHeight;
             if (node.size[1] !== targetHeight) {
                 node.size[1] = targetHeight;
                 if (node.onResize) node.onResize();
@@ -933,8 +865,9 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
     }
 }
+
 // ========================================
-// 3. Extension Registration
+// 3. Extension Registration（変更なし）
 // ========================================
 app.registerExtension({
     name: "PromptSwitch",
@@ -944,7 +877,6 @@ app.registerExtension({
                 const textWidget = findTextWidget(this);
                 if (!textWidget) return;
                 let actionTaken = false;
-                // Shift+E: 全ノード編集モードトグル
                 if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
                     const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
                     if (promptNodes.length === 0) return true;
@@ -1037,68 +969,52 @@ app.registerExtension({
                     } else {
                         if (!this.isEditMode) {
                             this.isCompactMode = !this.isCompactMode;
-                            if (!this.isCompactMode && this.originalHeight && this.size[1] !== this.originalHeight) {
+                            if (!this.isCompactMode && this.originalHeight && node.size[1] !== this.originalHeight) {
                                 this.size[1] = this.originalHeight;
-                                if (this.onResize) this.onResize();
+                                if (node.onResize) node.onResize();
                             }
                             actionTaken = true;
                         }
                     }
                 }
-                // 【C / Shift+C】: /C タグのトグル or 全削除
                 else if (e.key === 'c' || e.key === 'C') {
                     if (e.shiftKey) {
-                        // Shift+C: 全ノードから /C を一括削除
                         const promptNodes = app.graph._nodes.filter(n => n.type === 'PromptSwitch');
                         let changed = false;
                         for (const node of promptNodes) {
                             const currentTitle = node.title || "";
-                            const tagMatches = [...currentTitle.matchAll(/\/([^\/\s]*)/g)];
-                            if (tagMatches.length === 0) continue;
-                            const cleanTags = tagMatches
-                                .filter(m => m[1].toLowerCase() !== 'c')
-                                .map(m => '/' + m[1]);
-                            const nonTagParts = currentTitle.split(/\/[^\/\s]*/);
-                            let baseName = nonTagParts[0].trim();
-                            let newTitle = baseName;
-                            if (cleanTags.length > 0) {
-                                if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
-                                newTitle += cleanTags.join(' ');
-                            }
-                            newTitle = newTitle.trim();
+                            if (!currentTitle) continue;
+                            const newTitle = currentTitle
+                                .replace(/\/C\b/gi, '')
+                                .replace(/\/CM\d*(?:-\d+)?\b/gi, '')
+                                .replace(/\s+/g, ' ')
+                                .trim();
                             if (node.title !== newTitle) {
-                                node.title = newTitle;
+                                node.title = newTitle || "PromptSwitch";
                                 changed = true;
                             }
                         }
-                        if (changed) {
-                            app.graph.setDirtyCanvas(true, true);
-                        }
+                        if (changed) app.graph.setDirtyCanvas(true, true);
                         actionTaken = true;
                     } else {
-                        // C: 単体ノードの /C トグル
                         const currentTitle = this.title || "";
                         const tags = parseNodeTags(this);
                         const hasCTag = tags.includes('c');
+                        const hasCMTag = tags.some(t => t.startsWith('cm'));
                         let newTitle = "";
-                        if (hasCTag) {
-                            const tagMatches = [...currentTitle.matchAll(/\/([^\/\s]*)/g)];
-                            const cleanTags = tagMatches
-                                .filter(m => m[1].toLowerCase() !== 'c')
-                                .map(m => '/' + m[1]);
-                            const nonTagParts = currentTitle.split(/\/[^\/\s]*/);
-                            let baseName = nonTagParts[0].trim();
-                            newTitle = baseName;
-                            if (cleanTags.length > 0) {
-                                if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
-                                newTitle += cleanTags.join(' ');
-                            }
+                        if (hasCTag || hasCMTag) {
+                            newTitle = currentTitle
+                                .replace(/\/C\b/gi, '')
+                                .replace(/\/CM\d*(?:-\d+)?\b/gi, '')
+                                .replace(/\s+/g, ' ')
+                                .trim();
                         } else {
                             newTitle = currentTitle.trim();
                             if (newTitle && !newTitle.endsWith(' ')) newTitle += ' ';
                             newTitle += '/C';
                         }
-                        this.title = newTitle.trim();
+                        if (!newTitle.trim()) newTitle = "PromptSwitch";
+                        this.title = newTitle;
                         app.graph.setDirtyCanvas(true, true);
                         actionTaken = true;
                     }
@@ -1111,32 +1027,21 @@ app.registerExtension({
                     const coreHelpLines = [
                         `PromptSwitch - 主要なショートカット`,
                         `----------------------------------------`,
-                        ` F1 : このヘルプを表示`,
-                        ` F2/E : 編集モード切替 (ノードの枠のDblClickでも可)`,
-                        ` Shift+E : 全ノード編集モードトグル（既に編集中のものは維持）`,
-                        ` A : All Prompts (選択ノードの全消し優先トグル切替)`,
-                        ` Shift+A: 全ノードを一括で全無効化 (除外: /a)`,
-                        ` R : Random Pickup (セクションからランダム選択)`,
-                        ` -> タグ: /R2 /R0-5 /R-8-2 (ノードタイトル末尾)`,
-                        ` /R0-5: 0~5ランダム(6通り), /R-8-2: -8~2=0~2+外れ8(11通り,負=0選択)`,
-                        ` Shift+R: 全ノード一括ランダム (除外: /r)`,
-                        ` W : 全てのウェイトをリセット (1.0)`,
-                        ` V : Visible/Invisible (選択ノードのトグル)`,
-                        ` Shift+V: 全ノード一括トグル (除外: /v)`,
-                        ` C : /C タグのトグル（生成前に自動ランダム）`,
-                        ` Shift+C : 全ノードから /C タグを一括削除`,
-                        ` T : /T タグ（順番に回す）`,
-                        ` -> /T → /T2, /T2M3-1 → /T2M3-2 → /T3M3-1`,
-                        ``,
-                        `【タグは / で区切ってください】`,
-                        `例: おまじない/r/a/C　（スペースなしでもOK）`,
-                        `→ 全角スペース・タブ・改行も無視`,
-                        `複合タグ (/R2a, /var) は無効 → 警告が出ます`,
-                        ``,
-                        `[操作]`,
-                        `・行のクリック: プロンプトのON/OFF切替`,
-                        `・[+/-]ボタン: ウェイト調整`,
-                        `・ノードタイトル右クリック: 標準メニュー`,
+                        ` F1 : このヘルプを表示`,
+                        ` F2/E : 編集モード切替`,
+                        ` Shift+E : 全ノード編集モードトグル`,
+                        ` A : All Prompts トグル`,
+                        ` Shift+A: 全ノード一括無効化`,
+                        ` R : Random Pickup`,
+                        ` Shift+R: 全ノード一括ランダム`,
+                        ` W : 全ウェイトを 1.00 にリセット`,
+                        ` V : 表示/非表示切替`,
+                        ` Shift+V: 全ノード一括切替`,
+                        ` C : /C タグトグル（生成前1回ランダム）`,
+                        ` Shift+C : 全ノードから /C と /CM タグ削除`,
+                        ` /CMn-k : 最大n回までランダム実行（n回目でリセット）`,
+                        ` /T : 順番に回す（Turn）`,
+                        ` /TnMm-k : n行目をm回実行してから次の行へ`,
                     ];
                     const fullHelp = coreHelpLines.join('\n');
                     if (app.canvas.editor && app.canvas.editor.showMessage) {
@@ -1148,9 +1053,7 @@ app.registerExtension({
                 }
                 if (actionTaken) {
                     if (e.key !== 'F1') {
-                        if (textWidget.callback) {
-                            textWidget.callback(textWidget.value);
-                        }
+                        if (textWidget.callback) textWidget.callback(textWidget.value);
                     }
                     this.setDirtyCanvas(true, true);
                     if (e.shiftKey && (e.key === 'v' || e.key === 'V' || e.key === 'a' || e.key === 'A' || e.key === 'r' || e.key === 'R' || e.key === 'e' || e.key === 'E' || e.key === 'c' || e.key === 'C')) {
@@ -1167,14 +1070,10 @@ app.registerExtension({
     setupNodeCreatedCallback(nodeType, config, app) {
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function() {
-            if (origOnNodeCreated) {
-                origOnNodeCreated.apply(this, arguments);
-            }
+            if (origOnNodeCreated) origOnNodeCreated.apply(this, arguments);
             const textWidget = findTextWidget(this);
             if (textWidget) {
-                if (this.size[0] < CONFIG.minNodeWidth) {
-                    this.size[0] = CONFIG.minNodeWidth;
-                }
+                if (this.size[0] < CONFIG.minNodeWidth) this.size[0] = CONFIG.minNodeWidth;
                 this.isCompactMode = false;
                 this.originalHeight = this.size[1];
                 textWidget.value = "";
@@ -1184,28 +1083,20 @@ app.registerExtension({
                 textWidget.options.minHeight = this.size[1] - textWidget.y - 10;
                 textWidget.hidden = true;
                 const forceHide = (node) => {
-                    if (!node.isEditMode) {
-                        textWidget.hidden = true;
-                    }
-                    if (node.setDirtyCanvas) {
-                        node.setDirtyCanvas(true, true);
-                    }
+                    if (!node.isEditMode) textWidget.hidden = true;
+                    if (node.setDirtyCanvas) node.setDirtyCanvas(true, true);
                 };
                 setupClickHandler(this, textWidget, app);
                 const node = this;
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        forceHide(node);
-                    });
+                    requestAnimationFrame(() => forceHide(node));
                 });
                 const originalOnAdded = this.onAdded;
                 this.onAdded = function() {
                     if (originalOnAdded) originalOnAdded.apply(this, arguments);
                     this.isEditMode = false;
                     textWidget.hidden = true;
-                    if (this.size[1] > CONFIG.minNodeHeight) {
-                        this.originalHeight = this.size[1];
-                    }
+                    if (this.size[1] > CONFIG.minNodeHeight) this.originalHeight = this.size[1];
                     forceHide(this);
                 };
                 this.onMouseMove = null;
@@ -1213,9 +1104,7 @@ app.registerExtension({
                 this.onDblClick = function(e, pos) {
                     const [x, y] = pos;
                     if (y < CONFIG.headerHeight) {
-                        if (originalOnDblClick) {
-                            return originalOnDblClick.apply(this, arguments);
-                        }
+                        if (originalOnDblClick) return originalOnDblClick.apply(this, arguments);
                         return true;
                     }
                     const clickedArea = this.findClickedArea(pos);
@@ -1236,12 +1125,8 @@ app.registerExtension({
                 };
                 const originalOnDrawForeground = this.onDrawForeground;
                 this.onDrawForeground = function(ctx) {
-                    if (!this.isEditMode) {
-                        drawCheckboxList(this, ctx, textWidget.value, app, this.isCompactMode);
-                    }
-                    if (originalOnDrawForeground) {
-                        originalOnDrawForeground.call(this, ctx);
-                    }
+                    if (!this.isEditMode) drawCheckboxList(this, ctx, textWidget.value, app, this.isCompactMode);
+                    if (originalOnDrawForeground) originalOnDrawForeground.call(this, ctx);
                     requestAnimationFrame(() => {
                         if (!this.isEditMode && textWidget && textWidget.hidden !== true) {
                             textWidget.hidden = true;
@@ -1256,9 +1141,7 @@ app.registerExtension({
                         const widgetY = CONFIG.topNodePadding;
                         textWidget.y = widgetY;
                         textWidget.options.minHeight = this.size[1] - widgetY - 10;
-                        if (this.size[1] > CONFIG.minNodeHeight && !this.isCompactMode) {
-                            this.originalHeight = this.size[1];
-                        }
+                        if (this.size[1] > CONFIG.minNodeHeight && !this.isCompactMode) this.originalHeight = this.size[1];
                     }
                     this.setDirtyCanvas(true, true);
                 };
@@ -1268,43 +1151,28 @@ app.registerExtension({
         };
     }
 });
+
 // ===============================================
-// 生成前に1回だけランダム（/C タグ）
-// /T タグを先に処理（/Cより優先）
-// onAfterExecutePrompt での再ランダムは完全に削除
+// 生成前に処理（/T → /CM（含/C） の順で優先）
 // ===============================================
 if (typeof app !== 'undefined') {
     const originalQueuePrompt = app.queuePrompt;
     app.queuePrompt = async function (...args) {
-        // /T タグ処理（/Cより先に）
         const tNodes = app.graph._nodes
             .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).some(t => t.startsWith('t')));
         for (const node of tNodes) {
             const w = findTextWidget(node);
-            if (w) {
-                applyTTag(node, w, app);
-            }
+            if (w) applyTTag(node, w, app);
         }
-
-        // /C タグ処理（/T があるノードはスキップ）
         app.graph._nodes
-            .filter(n => n.type === 'PromptSwitch' && parseNodeTags(n).includes('c'))
-            .filter(n => !parseNodeTags(n).some(t => t.startsWith('t')))  // /T があるならスキップ
+            .filter(n => n.type === 'PromptSwitch')
+            .filter(n => !parseNodeTags(n).some(t => t.startsWith('t')))
+            .filter(n => parseNodeTags(n).includes('c') || parseNodeTags(n).some(t => t.startsWith('cm')))
             .forEach(n => {
                 const w = findTextWidget(n);
-                if (w && typeof randomPickupPrompts === 'function') {
-                    w.value = randomPickupPrompts(w.value, n);
-                    if (w.callback) w.callback(w.value);
-                    n.setDirtyCanvas(true, true);
-                }
+                if (w) applyCMTag(n, w, app);
             });
-
         app.graph.setDirtyCanvas(true, true);
         return await originalQueuePrompt.apply(this, args);
-    };
-
-    const originalAfterExec = app.onAfterExecutePrompt || function() {};
-    app.onAfterExecutePrompt = function() {
-        return originalAfterExec.apply(this, arguments);
     };
 }

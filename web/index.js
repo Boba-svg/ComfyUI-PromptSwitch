@@ -79,20 +79,28 @@ function isNodeExcluded(node, keys) {
     const tags = parseNodeTags(node);
     return keys.some(key => tags.includes(key.toLowerCase()));
 }
+
 function isLineDisabled(line) {
     const trimmedLine = line.trimStart();
     const isEmpty = trimmedLine === '';
     if (isEmpty) return false;
     return trimmedLine.startsWith('//');
 }
+
 function toggleAllPrompts(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
     const prefixRegex = /^\s*\/\/\s*/;
+    // トグル対象外パターンの正規表現（半角・全角スペース対応）
+    const excludePattern = /^\s*\/\/\s*,\s*\/\/\s*/;  // ← ここ変更（$ 削除）
+
     let needsDeactivation = false;
     for (const line of lines) {
         if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) continue;
         if (line.trim() === '') continue;
+        const trimmed = line.trimStart();
+        // 除外パターンに一致するかチェック（文字列があっても除外）
+        if (excludePattern.test(trimmed)) continue;
         if (!isLineDisabled(line)) {
             needsDeactivation = true;
             break;
@@ -101,22 +109,27 @@ function toggleAllPrompts(text) {
     const targetMode = needsDeactivation ? 'OFF' : 'ON';
     const newLines = lines.map(line => {
         if (line.trimStart().match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/)) return line;
-        let trimmedLine = line.trimStart();
-        const isCommented = trimmedLine.startsWith('//');
-        if (trimmedLine === '') return line;
+        const trimmed = line.trimStart();
+        if (trimmed === '') return line;
+        // 除外パターンに一致する行は無視（文字列があっても）
+        if (excludePattern.test(trimmed)) return line;
+        const isCommented = trimmed.startsWith('//');
         if (targetMode === 'ON') {
             if (isCommented) return line.replace(prefixRegex, '').trimStart();
         } else {
             if (!isCommented) {
                 const leadingSpaces = line.match(/^(\s*)/);
                 const spaces = leadingSpaces ? leadingSpaces[0] : "";
-                return spaces + commentPrefix + trimmedLine;
+                return spaces + commentPrefix + trimmed;
             }
         }
         return line;
     });
     return newLines.join('\n');
 }
+
+
+
 function deactivatePromptText(text) {
     const lines = text.split('\n');
     const commentPrefix = "// ";
@@ -799,21 +812,37 @@ function drawWeightButtons(ctx, node, y, lineIndex, weight) {
         });
     }
 }
+
+
 function drawCheckboxList(node, ctx, text, app, isCompactMode) {
     node.clickableAreas = [];
     const lines = text.split('\n');
     let y = CONFIG.topNodePadding;
     let lineIndex = 0;
     let linesDrawnCount = 0;
+
     for (const line of lines) {
+        const trimmed = line.trim();
+        const isLineEmpty = trimmed === '';
+        const isCommentOnly = trimmed.startsWith('//');
         const isInternalDisabled = line.match(/^\s*\/\/\s*disabled phrase\s*\d{14}$/);
+        const isPureCommentLine = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
+
+        // 内部無効行は無視
         if (isInternalDisabled) { lineIndex++; continue; }
-        const isLineEmpty = line.trim() === '';
-        const isDisabledByLeadingComment = line.trimStart().startsWith('//');
-        const commentLineMatch = line.trimStart().match(/^(\s*\/\/\s*,\s*\/\/\s*)(.*)$/);
-        if (commentLineMatch) {
-            const prefixSpaces = commentLineMatch[1];
-            const commentText = commentLineMatch[2];
+
+        // Compact Mode: 空白行・コメント行・純粋なセパレータ行をスキップ
+        if (isCompactMode && !node.isEditMode) {
+            if (isLineEmpty || isCommentOnly || (isPureCommentLine && isPureCommentLine[2].trim() === '')) {
+                lineIndex++;
+                continue;
+            }
+        }
+
+        // 純粋なセパレータ行（// , //）→ 線を描く
+        if (isPureCommentLine) {
+            const prefixSpaces = isPureCommentLine[1];
+            const commentText = isPureCommentLine[2];
             const isPureSeparator = commentText.trim() === '';
             if (isPureSeparator) {
                 const lineY = y + CONFIG.CommentLine_Height / 2;
@@ -836,26 +865,32 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             lineIndex++;
             continue;
         }
+
+        // 空行 → セパレータ線
         if (isLineEmpty) {
             drawSeparatorLine(ctx, node, y);
             y += CONFIG.emptyLineHeight;
             lineIndex++;
             continue;
         }
-        if (isCompactMode && !node.isEditMode) {
-            if (isDisabledByLeadingComment) { lineIndex++; continue; }
-        }
+
+        // 以降は有効プロンプト行
         linesDrawnCount++;
         let displayLine = line.trimStart();
+        const isDisabledByLeadingComment = displayLine.startsWith('//');
         if (isDisabledByLeadingComment) displayLine = displayLine.replace(/^\/\/\s*/, '').trimStart();
+
         const textStartX = CONFIG.sideNodePadding + CONFIG.checkboxSize + CONFIG.spaceBetweenCheckboxAndText;
         drawCheckboxItems(ctx, node, y, isDisabledByLeadingComment, lineIndex);
+
         const [textToDraw, weight, totalTextWidth] = drawCommentText(ctx, node, displayLine, y, isDisabledByLeadingComment, textStartX);
+
         const textClickableX = CONFIG.sideNodePadding + CONFIG.checkboxSize + CONFIG.spaceBetweenCheckboxAndText;
         let weightButtonSpace = weight.toFixed(2) !== "1.00"
             ? CONFIG.weightButtonSize * 2 + 4 + CONFIG.weightLabelWidth + 4
             : CONFIG.weightButtonSize * 2 + 4;
         const textClickableWidth = node.size[0] - textClickableX - CONFIG.sideNodePadding - weightButtonSpace;
+
         node.clickableAreas.push({
             type: 'text_area_suppressor',
             lineIndex: lineIndex,
@@ -864,10 +899,14 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
             width: textClickableWidth,
             height: CONFIG.lineHeight,
         });
+
         if (weight !== null) drawWeightButtons(ctx, node, y, lineIndex, weight);
+
         y += CONFIG.lineHeight;
         lineIndex++;
     }
+
+    // 高さ調整（変更なし）
     const newHeight = y + 10;
     const contentHeight = y - CONFIG.topNodePadding;
     if (!node.isEditMode) {
@@ -888,6 +927,7 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
         }
     }
 }
+
 
 // ========================================
 // 3. Extension Registration（変更なし）

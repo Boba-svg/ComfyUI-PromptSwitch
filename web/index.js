@@ -474,23 +474,30 @@ function applyTTag(node, textWidget, app) {
             newLines[targetLine] = leadingSpaces + cleanLine;
             foundValidLine = true;
 
-            // ★★★ ここが天才的ロジック ★★★
-            //let nextCount = wasPreviousLineEmptyOrComment ? 1 : count + 1; // 前行がコメント空行でなければカウントを進める					
 			let nextCount = count + 1;
-
             let nextCurrent = current;
 
-            if (nextCount > maxExec	) {
+			if (wasPreviousLineEmptyOrComment === true){
+				// 前処理がコメント空行であれば
+				nextCount = 1;
+                nextCurrent = current + 2; //1行スキップする
+			}
+
+            if (nextCurrent > totalLines){
+        		//行数が最終行を超えていたら
+	            nextCount = 1;
+            	nextCurrent = 1;
+            }else if (nextCount > maxExec	) {
 				//カウントが最大実行回数を超えていたら
                 nextCount = 1;
                 nextCurrent = current + 1;
-                if (nextCurrent > totalLines) nextCurrent = 1;
 
-            }else if (wasPreviousLineEmptyOrComment === true){
-				// 前行がコメント空行であれば
-				nextCount = 1;
-                nextCurrent = current + 1;
-			}
+                // ここでも行番号ループを保証
+                if (nextCurrent > totalLines) {
+                    nextCurrent = 1;
+                }
+
+            }
 
             // 次回用のタグ生成
             const newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
@@ -502,7 +509,7 @@ function applyTTag(node, textWidget, app) {
             node.title = finalTitle.trim();
 
             break;
-        }
+        } 
 
         // 空白行かコメント行だった → フラグを立てる
         wasPreviousLineEmptyOrComment = true;
@@ -510,13 +517,8 @@ function applyTTag(node, textWidget, app) {
 
         targetLine++;
         attempts++;
-    }
 
-    // 有効行が一つもなかったときのフォールバック（安全装置）
-    if (!foundValidLine && totalLines > 0) {
-        newLines[0] = lines[0].trimStart().replace(/^\/\/\s*/, '');
-        node.title = node.title.replace(/\/T[^\/\s]*/g, '') + " /T1M1-1";
-    }
+    }	//while の〆
 
     newText = newLines.join('\n');
     textWidget.value = newText;

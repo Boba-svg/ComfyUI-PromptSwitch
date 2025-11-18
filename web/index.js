@@ -465,9 +465,8 @@ function applyTTag(node, textWidget, app) {
         const line = lines[targetLine];
         const trimmed = line.trimStart();
         const isEmpty = trimmed === '';
-        const isCommentOnly = /^\s*\/\/\s*(,\s*\/\/\s*)?$/.test(trimmed);
+        const isCommentOnly = /^(\s*\/\/\s*,?\s*\/\/\s*)/.test(trimmed);
 
-		
         if (!isEmpty && !isCommentOnly) {
             // ← ここで有効行発見！
             const leadingSpaces = line.match(/^(\s*)/)[0];

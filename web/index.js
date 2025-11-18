@@ -462,9 +462,9 @@ function applyTTag(node, textWidget, app) {
     while (attempts < totalLines + 10) {
         if (targetLine >= totalLines) targetLine = 0;
 
-        const line = lines[targetLine];
-        const trimmed = line.trimStart();
-        const isEmpty = trimmed === '';
+		const line = lines[targetLine];
+		const trimmed = line.trim();  // \r も消える → Windows/Linux 完全統一
+		const isEmpty = trimmed === '';
         const isCommentOnly = /^(\s*\/\/\s*,?\s*\/\/\s*)/.test(trimmed);
 
         if (!isEmpty && !isCommentOnly) {

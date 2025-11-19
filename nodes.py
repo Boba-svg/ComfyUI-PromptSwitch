@@ -4,6 +4,7 @@
 # PromptSwitch ノード定義（旧 PromptPalette の流用）
 
 import os
+import re
 
 
 class PromptSwitch:
@@ -46,10 +47,23 @@ class PromptSwitch:
             if not line.strip().endswith(","):
                 line = line + ", "
             filtered_lines.append(line)
-        result = "\n".join(filtered_lines)
+        result = "\n".join(filtered_lines) + "\n"
 
         if prefix:
             result = prefix + "\n" + result
+
+        result = result.lstrip(' ')
+        
+        # --- 改良点：改行を正規化してから判定 ---
+        # Windows の CRLF (\r\n) や単独の CR (\r) をすべて \n に統一する
+        result = result.replace("\r\n", "\n").replace("\r", "\n")
+
+        # --- 複数の空行を1行に圧縮 ---
+        result = re.sub(r'\n{2,}', '\n', result)
+
+        # --- 出力が改行文字だけの場合、空文字に変換 ---
+        if re.fullmatch(r"\n+", result):
+            result = ""
 
         return (result,)
 

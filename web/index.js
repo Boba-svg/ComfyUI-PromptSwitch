@@ -452,13 +452,25 @@ function applyTTag(node, textWidget, app) {
     let newText = deactivatePromptText(textWidget.value);
     let newLines = newText.split('\n');
 
-    // 前行が空白/コメントだったかのフラグ（最初はfalse）
-    let wasPreviousLineEmptyOrComment = false;
 
     let targetLine = current - 1;
     let attempts = 0;
-    let foundValidLine = false;
 
+    //Whileの外側で宣言する必要がある
+	let nextCount = count + 1;
+    let nextCurrent = current; // カウント中のため 進めない
+
+    if (nextCurrent > totalLines){
+        //ノードタイトルで指定された行数が最終行を超えていたら
+        nextCount = 1;
+        nextCurrent = 1;
+    }else if (nextCount > maxExec) {
+        //次回のカウントが最大実行回数を超えていたら
+        //（カウント+=1した結果が最大実行回数を超えた場合なので、今回は最後の処理）
+        nextCount = 1;
+        nextCurrent += 1; //1行次につつめる
+    }
+    
     while (attempts < totalLines + 10) {
         if (targetLine >= totalLines) targetLine = 0;
 
@@ -466,38 +478,12 @@ function applyTTag(node, textWidget, app) {
 		const trimmed = line.trim();  // \r も消える → Windows/Linux 完全統一
 		const isEmpty = trimmed === '';
         const isCommentOnly = /^(\s*\/\/\s*,?\s*\/\/\s*)/.test(trimmed);
-
+        
         if (!isEmpty && !isCommentOnly) {
             // ← ここで有効行発見！
             const leadingSpaces = line.match(/^(\s*)/)[0];
             const cleanLine = trimmed.replace(/^\/\/\s*/, '');
             newLines[targetLine] = leadingSpaces + cleanLine;
-            foundValidLine = true;
-
-			let nextCount = count + 1;
-            let nextCurrent = current;
-
-			if (wasPreviousLineEmptyOrComment === true){
-				// 前処理がコメント空行であれば
-				nextCount = 1;
-                nextCurrent = current + 2; //1行スキップする
-			}
-
-            if (nextCurrent > totalLines){
-        		//行数が最終行を超えていたら
-	            nextCount = 1;
-            	nextCurrent = 1;
-            }else if (nextCount > maxExec	) {
-				//カウントが最大実行回数を超えていたら
-                nextCount = 1;
-                nextCurrent = current + 1;
-
-                // ここでも行番号ループを保証
-                if (nextCurrent > totalLines) {
-                    nextCurrent = 1;
-                }
-
-            }
 
             // 次回用のタグ生成
             const newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
@@ -511,13 +497,23 @@ function applyTTag(node, textWidget, app) {
             break;
         } 
 
-        // 空白行かコメント行だった → フラグを立てる
-        wasPreviousLineEmptyOrComment = true;
+        // 空白行かコメント行だった
         console.log(`%c[Tタグ] スキップ → "${line.trim()}" (行${targetLine + 1})`, "color: #8888ff;");
 
         targetLine++;
+
+        // 空白行の後は必ず行を進めていい　（カウント処理が発生しないため）
+        nextCurrent = targetLine + 1;
+        nextCount = 2; // カウントを進める処理をする 新規行の次のカウントだから２
+
+        // M1-1限定の処理だがM1-1の場合は次の行に進める
+        if (nextCount > maxExec) {
+            nextCount = 1;
+            nextCurrent += 1; //1行次につつめる
+        }
         attempts++;
 
+        
     }	//while の〆
 
     newText = newLines.join('\n');

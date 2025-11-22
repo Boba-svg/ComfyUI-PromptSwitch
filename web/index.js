@@ -38,6 +38,54 @@ const CONFIG = {
     CommentLine_FontColor: "#ADD8E6",
 };
 
+
+
+// ===============================================
+// ワークフロー読み込み時に /Compact タグチェック → 全ノードをコンパクトモード化
+// ===============================================
+// ===== 1. loadGraphData のフック部分（/V → /Compact 判定に変更）=====
+const originalLoadGraphData = app.loadGraphData;
+app.loadGraphData = function (graph) {
+    const result = originalLoadGraphData.call(this, graph);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            console.log("[PromptSwitch /Compact] ワークフロー読み込み後処理開始");
+
+            const promptSwitchNodes = this.graph._nodes.filter(n => n.type === "PromptSwitch");
+
+            // ← ここだけ変更！ /V（大文字）ではなく /Compact を探す
+            const hasCompactTag = promptSwitchNodes.some(node => {
+                const tags = parseNodeTags(node);
+                return tags.includes("compact");  // ← 小文字で正規化済みなので "compact"
+            });
+
+            if (hasCompactTag) {
+                console.log("[PromptSwitch /Compact] /Compact タグ発見 → 全ノードをコンパクトモードで起動");
+                let changedCount = 0;
+                promptSwitchNodes.forEach(node => {
+                    // /v（小文字）で除外されているノードはスルー（従来通り）
+                    if (!isNodeExcluded(node, ["v"])) {
+                        if (!node.isCompactMode) {
+                            node.isCompactMode = true;
+                            changedCount++;
+                            if (node.onResize) node.onResize();
+                        }
+                    }
+                });
+                if (changedCount > 0) {
+                    console.log(`[PromptSwitch /Compact] コンパクトモード適用: ${changedCount}ノード`);
+                    this.graph.setDirtyCanvas(true, true);
+                }
+            } else {
+                console.log("[PromptSwitch /Compact] /Compact タグなし → 通常起動");
+            }
+        });
+    });
+
+    return result;
+};
+
 // ========================================
 // 1. タグパース関数（/T 単体を正式に許可）
 // ========================================
@@ -51,13 +99,18 @@ function parseNodeTags(node) {
         tag.replace(/[\u{3000}\t\n\r]+/gu, ' ').trim()
     ).filter(t => t);
     if (normalizedTags.length === 0) return [];
-    const invalid = normalizedTags.some(tag => {
-        if (/^R[\d-]*$/i.test(tag)) return false;
-        if (/^[avrc]$/i.test(tag)) return false;
-        if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
-        if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
-        return true;
-    });
+
+	// ===== 2. parseNodeTags の有効タグリストに "compact" を追加 =====
+	const invalid = normalizedTags.some(tag => {
+	    if (/^R[\d-]*$/i.test(tag)) return false;
+	    if (/^[avrc]$/i.test(tag)) return false;
+	    if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;
+	    if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
+	    if (/^compact$/i.test(tag)) return false;  // ← ここを追加！
+	    return true;
+	});
+
+
     if (invalid) {
         console.warn(`[PromptSwitch] 無効なタグ: /${rawTags.join('/')} → /で区切ってください。`);
         return [];

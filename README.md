@@ -139,6 +139,7 @@ Manager → "Install Custom Nodes" → `PromptSwitch` で検索 → インスト
 ### 2. 手動インストール
   
 ComfyUI/custom_nodes フォルダで実行  
+
 git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git  
   
 ### 3. アップデート  

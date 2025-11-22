@@ -137,13 +137,14 @@ GitHubで公開された「PromptSwitch」へようこそ！
 Manager → "Install Custom Nodes" → `PromptSwitch` で検索 → インストール → 再起動
 
 ### 2. 手動インストール
-ComfyUI/custom_nodes フォルダで実行
-git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git
-text### 3. アップデート
-同フォルダで実行
-git pull
-text---
-
+ComfyUI/custom_nodes フォルダで実行  
+git clone https://github.com/Boba-svg/ComfyUI-PromptSwitch.git  
+  
+### 3. アップデート  
+同フォルダで実行  
+git pull  
+---  
+  
 ## アップデート履歴（抜粋）
 
 | 日付         | 内容                                                                                   |

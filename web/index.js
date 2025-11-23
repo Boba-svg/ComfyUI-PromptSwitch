@@ -43,6 +43,10 @@ const CONFIG = {
 // ===============================================
 // ワークフロー読み込み時に /Compact タグチェック → 全ノードをコンパクトモード化
 // ===============================================
+// ===== 修正1：loadGraphData のフック部分 =====
+// ここを丸ごとコメントアウト（/Compactタグ機能は犠牲になるがUnsaved病は完治）
+/*
+
 // ===== 1. loadGraphData のフック部分（/V → /Compact 判定に変更）=====
 const originalLoadGraphData = app.loadGraphData;
 app.loadGraphData = function (graph) {
@@ -85,6 +89,9 @@ app.loadGraphData = function (graph) {
 
     return result;
 };
+
+*/
+
 
 // ========================================
 // 1. タグパース関数（/T 単体を正式に許可）
@@ -983,6 +990,8 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
 // ========================================
 // 3. Extension Registration（変更なし）
 // ========================================
+// ===== 修正1：loadGraphData のフック部分 =====
+
 app.registerExtension({
     name: "PromptSwitch",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -1183,6 +1192,8 @@ app.registerExtension({
     },
     setupNodeCreatedCallback(nodeType, config, app) {
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
+
+/*
         nodeType.prototype.onNodeCreated = function() {
             if (origOnNodeCreated) origOnNodeCreated.apply(this, arguments);
             const textWidget = findTextWidget(this);
@@ -1263,6 +1274,8 @@ app.registerExtension({
                 if (this.setDirtyCanvas) this.setDirtyCanvas(true, true);
             }
         };
+*/
+
     }
 });
 

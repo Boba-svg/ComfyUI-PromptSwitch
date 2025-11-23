@@ -668,7 +668,7 @@ function drawSeparatorLine(ctx, node, y) {
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
-    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_PROMPT_ON;
+    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_COMMENT_ON;
     let commentFontSize = Math.max(1, Math.floor(promptFontSize * CONFIG.COMMENT_FONT_SCALE));
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";

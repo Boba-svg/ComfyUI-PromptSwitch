@@ -38,61 +38,6 @@ const CONFIG = {
     CommentLine_FontColor: "#ADD8E6",
 };
 
-
-
-// ===============================================
-// ワークフロー読み込み時に /Compact タグチェック → 全ノードをコンパクトモード化
-// ===============================================
-// ===== 修正1：loadGraphData のフック部分 =====
-// ここを丸ごとコメントアウト（/Compactタグ機能は犠牲になるがUnsaved病は完治）
-/*
-
-// ===== 1. loadGraphData のフック部分（/V → /Compact 判定に変更）=====
-const originalLoadGraphData = app.loadGraphData;
-app.loadGraphData = function (graph) {
-    const result = originalLoadGraphData.call(this, graph);
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            console.log("[PromptSwitch /Compact] ワークフロー読み込み後処理開始");
-
-            const promptSwitchNodes = this.graph._nodes.filter(n => n.type === "PromptSwitch");
-
-            // ← ここだけ変更！ /V（大文字）ではなく /Compact を探す
-            const hasCompactTag = promptSwitchNodes.some(node => {
-                const tags = parseNodeTags(node);
-                return tags.includes("compact");  // ← 小文字で正規化済みなので "compact"
-            });
-
-            if (hasCompactTag) {
-                console.log("[PromptSwitch /Compact] /Compact タグ発見 → 全ノードをコンパクトモードで起動");
-                let changedCount = 0;
-                promptSwitchNodes.forEach(node => {
-                    // /v（小文字）で除外されているノードはスルー（従来通り）
-                    if (!isNodeExcluded(node, ["v"])) {
-                        if (!node.isCompactMode) {
-                            node.isCompactMode = true;
-                            changedCount++;
-                            if (node.onResize) node.onResize();
-                        }
-                    }
-                });
-                if (changedCount > 0) {
-                    console.log(`[PromptSwitch /Compact] コンパクトモード適用: ${changedCount}ノード`);
-                    this.graph.setDirtyCanvas(true, true);
-                }
-            } else {
-                console.log("[PromptSwitch /Compact] /Compact タグなし → 通常起動");
-            }
-        });
-    });
-
-    return result;
-};
-
-*/
-
-
 // ========================================
 // 1. タグパース関数（/T 単体を正式に許可）
 // ========================================
@@ -106,18 +51,13 @@ function parseNodeTags(node) {
         tag.replace(/[\u{3000}\t\n\r]+/gu, ' ').trim()
     ).filter(t => t);
     if (normalizedTags.length === 0) return [];
-
-	// ===== 2. parseNodeTags の有効タグリストに "compact" を追加 =====
-	const invalid = normalizedTags.some(tag => {
-	    if (/^R[\d-]*$/i.test(tag)) return false;
-	    if (/^[avrc]$/i.test(tag)) return false;
-	    if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;
-	    if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
-	    if (/^compact$/i.test(tag)) return false;  // ← ここを追加！
-	    return true;
-	});
-
-
+    const invalid = normalizedTags.some(tag => {
+        if (/^R[\d-]*$/i.test(tag)) return false;
+        if (/^[avrc]$/i.test(tag)) return false;
+        if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
+        if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
+        return true;
+    });
     if (invalid) {
         console.warn(`[PromptSwitch] 無効なタグ: /${rawTags.join('/')} → /で区切ってください。`);
         return [];
@@ -512,38 +452,45 @@ function applyTTag(node, textWidget, app) {
     let newText = deactivatePromptText(textWidget.value);
     let newLines = newText.split('\n');
 
+    // 前行が空白/コメントだったかのフラグ（最初はfalse）
+    let wasPreviousLineEmptyOrComment = false;
 
     let targetLine = current - 1;
     let attempts = 0;
+    let foundValidLine = false;
 
-    //Whileの外側で宣言する必要がある
-	let nextCount = count + 1;
-    let nextCurrent = current; // カウント中のため 進めない
-
-    if (nextCurrent > totalLines){
-        //ノードタイトルで指定された行数が最終行を超えていたら
-        nextCount = 1;
-        nextCurrent = 1;
-    }else if (nextCount > maxExec) {
-        //次回のカウントが最大実行回数を超えていたら
-        //（カウント+=1した結果が最大実行回数を超えた場合なので、今回は最後の処理）
-        nextCount = 1;
-        nextCurrent += 1; //1行次につつめる
-    }
-    
     while (attempts < totalLines + 10) {
         if (targetLine >= totalLines) targetLine = 0;
 
-		const line = lines[targetLine];
-		const trimmed = line.trim();  // \r も消える → Windows/Linux 完全統一
-		const isEmpty = trimmed === '';
-        const isCommentOnly = /^(\s*\/\/\s*,?\s*\/\/\s*)/.test(trimmed);
-        
+        const line = lines[targetLine];
+        const trimmed = line.trimStart();
+        const isEmpty = trimmed === '';
+        const isCommentOnly = /^\s*\/\/\s*(?:,?\s*\/\/)?\s*$/.test(trimmed);
+
         if (!isEmpty && !isCommentOnly) {
             // ← ここで有効行発見！
             const leadingSpaces = line.match(/^(\s*)/)[0];
             const cleanLine = trimmed.replace(/^\/\/\s*/, '');
             newLines[targetLine] = leadingSpaces + cleanLine;
+            foundValidLine = true;
+
+            // ★★★ ここが天才的ロジック ★★★
+            //let nextCount = wasPreviousLineEmptyOrComment ? 1 : count + 1; // 前行がコメント空行でなければカウントを進める					
+			let nextCount = count + 1;
+
+            let nextCurrent = current;
+
+            if (nextCount > maxExec	) {
+				//カウントが最大実行回数を超えていたら
+                nextCount = 1;
+                nextCurrent = current + 1;
+                if (nextCurrent > totalLines) nextCurrent = 1;
+
+            }else if (wasPreviousLineEmptyOrComment === true){
+				// 前行がコメント空行であれば
+				nextCount = 1;
+                nextCurrent = current + 1;
+			}
 
             // 次回用のタグ生成
             const newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
@@ -555,26 +502,21 @@ function applyTTag(node, textWidget, app) {
             node.title = finalTitle.trim();
 
             break;
-        } 
+        }
 
-        // 空白行かコメント行だった
+        // 空白行かコメント行だった → フラグを立てる
+        wasPreviousLineEmptyOrComment = true;
         console.log(`%c[Tタグ] スキップ → "${line.trim()}" (行${targetLine + 1})`, "color: #8888ff;");
 
         targetLine++;
-
-        // 空白行の後は必ず行を進めていい　（カウント処理が発生しないため）
-        nextCurrent = targetLine + 1;
-        nextCount = 2; // カウントを進める処理をする 新規行の次のカウントだから２
-
-        // M1-1限定の処理だがM1-1の場合は次の行に進める
-        if (nextCount > maxExec) {
-            nextCount = 1;
-            nextCurrent += 1; //1行次につつめる
-        }
         attempts++;
+    }
 
-        
-    }	//while の〆
+    // 有効行が一つもなかったときのフォールバック（安全装置）
+    if (!foundValidLine && totalLines > 0) {
+        newLines[0] = lines[0].trimStart().replace(/^\/\/\s*/, '');
+        node.title = node.title.replace(/\/T[^\/\s]*/g, '') + " /T1M1-1";
+    }
 
     newText = newLines.join('\n');
     textWidget.value = newText;
@@ -724,7 +666,7 @@ function drawSeparatorLine(ctx, node, y) {
 function drawCommentText(ctx, node, displayLine, y, isDisabled, startX) {
     const promptFontSize = CONFIG.fontSize;
     const colorPrompt = isDisabled ? CONFIG.COLOR_PROMPT_OFF : CONFIG.COLOR_PROMPT_ON;
-    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_COMMENT_ON;
+    const colorComment = isDisabled ? CONFIG.COLOR_COMMENT_OFF : CONFIG.COLOR_PROMPT_ON;
     let commentFontSize = Math.max(1, Math.floor(promptFontSize * CONFIG.COMMENT_FONT_SCALE));
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
@@ -990,8 +932,6 @@ function drawCheckboxList(node, ctx, text, app, isCompactMode) {
 // ========================================
 // 3. Extension Registration（変更なし）
 // ========================================
-// ===== 修正1：loadGraphData のフック部分 =====
-
 app.registerExtension({
     name: "PromptSwitch",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -1192,8 +1132,6 @@ app.registerExtension({
     },
     setupNodeCreatedCallback(nodeType, config, app) {
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
-
-/*
         nodeType.prototype.onNodeCreated = function() {
             if (origOnNodeCreated) origOnNodeCreated.apply(this, arguments);
             const textWidget = findTextWidget(this);
@@ -1274,8 +1212,6 @@ app.registerExtension({
                 if (this.setDirtyCanvas) this.setDirtyCanvas(true, true);
             }
         };
-*/
-
     }
 });
 

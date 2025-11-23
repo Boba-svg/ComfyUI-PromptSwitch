@@ -56,6 +56,7 @@ function parseNodeTags(node) {
         if (/^[avrc]$/i.test(tag)) return false;
         if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
         if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
+        if (/^Compact$/i.test(tag)) return false;   // ← この1行を追加！！
         return true;
     });
     if (invalid) {

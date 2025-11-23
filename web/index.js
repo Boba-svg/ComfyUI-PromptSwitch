@@ -1259,7 +1259,7 @@ app.registerExtension({
                         const hasCompactTag = app.graph._nodes.some(node =>
                             node.type === "PromptSwitch" &&
                             node.title &&
-                            /\/compact\b/i.test(node.title)  // ← 大文字小文字無視で正確に検知
+                            /\/compact/i.test(node.title)  // ← 大文字小文字無視で正確に検知
                         );
 
                         if (hasCompactTag) {

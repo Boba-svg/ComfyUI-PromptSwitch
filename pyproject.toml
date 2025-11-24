@@ -3,7 +3,7 @@
 name = "comfyui-promptswitch" 
 
 # 必須: 現在のバージョン。semantic versioning (セマンティックバージョニング)に従い、0.1.0から始めるのが一般的。
-version = "0.4.9" 
+version = "0.5.0" 
 
 # 推奨: Managerのリストに表示される短い説明。
 description = "プロンプトをワンクリックで切り替えるためのカスタムノード (Prompt Switch)" 

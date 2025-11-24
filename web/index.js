@@ -25,10 +25,10 @@ const CONFIG = {
     weightLabelWidth: 50,
     minWeight: -1.0,
     maxWeight: 2.0,
-    commentPrefixLength: 15,
+    commentPrefixLength: 30, //15
     COMMENT_FONT_SCALE: 0.8,
     WEIGHT_STEP: 0.10,
-    PROMPT_MAX_LENGTH_DISPLAY: 30,
+    PROMPT_MAX_LENGTH_DISPLAY: 80, // 30
     COLOR_PROMPT_ON: "#FFF",
     COLOR_COMMENT_ON: "#ADD8E6",
     COLOR_PROMPT_OFF: "#AAAAAA",
@@ -56,7 +56,7 @@ function parseNodeTags(node) {
         if (/^[avrc]$/i.test(tag)) return false;
         if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
         if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
-        if (/^Compact$/i.test(tag)) return false;   // ← この1行を追加！！
+        // if (/^Compact$/i.test(tag)) return false;   // ← この1行を追加！！ ←封印
         return true;
     });
     if (invalid) {
@@ -1166,37 +1166,6 @@ app.registerExtension({
                     forceHide(this);
                 };
 
-                // ======== 新機能：/Compact タグで自動コンパクトモード ========
-                // ワークフロー読み込み時に1度だけ実行される
-                if (!app.graph._compactModeChecked) {
-                    app.graph._compactModeChecked = true;  // 重複実行防止フラグ
-
-                    const hasCompactTag = app.graph._nodes.some(n => 
-                        n.type === 'PromptSwitch' && 
-                        n.title && 
-                        n.title.toLowerCase().includes('/compact')
-                    );
-
-                    if (hasCompactTag) {
-                        const targetNodes = app.graph._nodes.filter(n => 
-                            n.type === 'PromptSwitch' && 
-                            !isNodeExcluded(n, ['v'])  // /v タグのノードは除外
-                        );
-
-                        for (const node of targetNodes) {
-                            if (!node.isEditMode) {
-                                node.isCompactMode = true;
-                                // 高さがデフォルトのままなら最小化
-                                if (node.size[1] > CONFIG.headerHeight + 20) {
-                                    node.size[1] = CONFIG.headerHeight + 20;
-                                    if (node.onResize) node.onResize();
-                                }
-                            }
-                        }
-                        app.graph.setDirtyCanvas(true, true);
-                    }
-                }
-                // ========================================================
 
                 this.onMouseMove = null;
                 const originalOnDblClick = this.onDblClick;
@@ -1245,46 +1214,6 @@ app.registerExtension({
                     this.setDirtyCanvas(true, true);
                 };
                 if (this.onResize) this.onResize();
-
-                // ================================================
-                // 修正：ワークフロー読み込み時に /Compact タグで自動コンパクト化（重複防止＋正しいタイミング）
-                // ================================================
-                const origOnConfigure = this.onConfigure;
-                this.onConfigure = function(info) {
-                    if (origOnConfigure) origOnConfigure.apply(this, arguments);
-
-                    // グラフ全体で1回だけ実行（複数ノードで何度も走らないように）
-                    if (!app.graph._compactModeAutoApplied) {
-                        app.graph._compactModeAutoApplied = true;
-
-                        const hasCompactTag = app.graph._nodes.some(node =>
-                            node.type === "PromptSwitch" &&
-                            node.title &&
-                            /\/compact/i.test(node.title)  // ← 大文字小文字無視で正確に検知
-                        );
-
-                        if (hasCompactTag) {
-                            const nodesToCompact = app.graph._nodes.filter(node =>
-                                node.type === "PromptSwitch" &&
-                                !isNodeExcluded(node, ["v"]) &&  // /v（小文字）タグがあるノードは除外
-                                !node.isEditMode
-                            );
-
-                            for (const node of nodesToCompact) {
-                                node.isCompactMode = true;
-
-                                // 高さがデフォルトのままであれば最小化（見た目を崩さない）
-                                if (node.size && node.size[1] > CONFIG.headerHeight + 30) {
-                                    node.size[1] = CONFIG.headerHeight + 20;
-                                    if (node.onResize) node.onResize(node.size);
-                                }
-                            }
-
-                            app.graph.setDirtyCanvas(true, true);
-                        }
-                    }
-                };
-                // ================================================
 
                 if (this.setDirtyCanvas) this.setDirtyCanvas(true, true);
             }

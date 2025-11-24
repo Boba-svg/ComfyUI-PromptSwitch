@@ -1,6 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch v0.4.9 コンパクトモード削除
+// PromptSwitch v0.5.0 コンパクトモード削除
 // 2025-11-15 /CMn-k（Chaos Multi）機能 完全実装＋全バグ修正完了
 // 2025-11-16 /T（Turn）タグ 完全実装完了（count < max時はcurrent固定、max到達でcurrent+1 & count=1）
 // ・/T と /C|/CM が競合時は /T 完全優先、警告表示

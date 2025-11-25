@@ -1,6 +1,6 @@
 // File: web/index.js
 // Program: PromptSwitch (ComfyUI-PromptPaletteの改編版)
-// PromptSwitch v0.5.0 コンパクトモード削除
+// PromptSwitch #2896
 // 2025-11-15 /CMn-k（Chaos Multi）機能 完全実装＋全バグ修正完了
 // 2025-11-16 /T（Turn）タグ 完全実装完了（count < max時はcurrent固定、max到達でcurrent+1 & count=1）
 // ・/T と /C|/CM が競合時は /T 完全優先、警告表示
@@ -25,10 +25,10 @@ const CONFIG = {
     weightLabelWidth: 50,
     minWeight: -1.0,
     maxWeight: 2.0,
-    commentPrefixLength: 30, //15
+    commentPrefixLength: 15,
     COMMENT_FONT_SCALE: 0.8,
     WEIGHT_STEP: 0.10,
-    PROMPT_MAX_LENGTH_DISPLAY: 80, // 30
+    PROMPT_MAX_LENGTH_DISPLAY: 30,
     COLOR_PROMPT_ON: "#FFF",
     COLOR_COMMENT_ON: "#ADD8E6",
     COLOR_PROMPT_OFF: "#AAAAAA",
@@ -56,7 +56,6 @@ function parseNodeTags(node) {
         if (/^[avrc]$/i.test(tag)) return false;
         if (/^T\d*M?\d*-?\d*$/i.test(tag)) return false;  // ← ここ変更：/T 単体許可
         if (/^CM\d*(?:-\d+)?$/i.test(tag)) return false;
-        // if (/^Compact$/i.test(tag)) return false;   // ← この1行を追加！！ ←封印
         return true;
     });
     if (invalid) {
@@ -453,8 +452,6 @@ function applyTTag(node, textWidget, app) {
     let newText = deactivatePromptText(textWidget.value);
     let newLines = newText.split('\n');
 
-    // 前行が空白/コメントだったかのフラグ（最初はfalse）
-    //let wasPreviousLineEmptyOrComment = false; //削除する
 
     let targetLine = current - 1;
     let attempts = 0;
@@ -462,6 +459,17 @@ function applyTTag(node, textWidget, app) {
     //Whileの外側で宣言する必要がある
 	let nextCount = count + 1;
     let nextCurrent = current; // カウント中のため 進めない
+
+    if (nextCurrent > totalLines){
+        //ノードタイトルで指定された行数が最終行を超えていたら
+        nextCount = 1;
+        nextCurrent = 1;
+    }else if (nextCount > maxExec) {
+        //次回のカウントが最大実行回数を超えていたら
+        //（カウント+=1した結果が最大実行回数を超えた場合なので、今回は最後の処理）
+        nextCount = 1;
+        nextCurrent += 1; //1行次につつめる
+    }
     
     while (attempts < totalLines + 10) {
         if (targetLine >= totalLines) targetLine = 0;
@@ -476,22 +484,6 @@ function applyTTag(node, textWidget, app) {
             const leadingSpaces = line.match(/^(\s*)/)[0];
             const cleanLine = trimmed.replace(/^\/\/\s*/, '');
             newLines[targetLine] = leadingSpaces + cleanLine;
-
-            if (nextCurrent > totalLines){
-        		//行数が最終行を超えていたら
-	            nextCount = 1;
-            	nextCurrent = 1;
-            }else if (nextCount > maxExec) {
-				//次回のカウントが最大実行回数を超えていたら
-                //（カウント+=1した結果が最大実行回数を超えた場合なので、今回は最後の処理）
-                nextCount = 1;
-                nextCurrent += 1; //1行次につつめる
-
-                // ここでも行番号ループを保証
-                //if (nextCurrent > totalLines) {
-                //    nextCurrent = 1;
-                //}
-            }
 
             // 次回用のタグ生成
             const newTag = `/T${nextCurrent}M${maxExec}-${nextCount}`;
@@ -511,9 +503,14 @@ function applyTTag(node, textWidget, app) {
         targetLine++;
 
         // 空白行の後は必ず行を進めていい　（カウント処理が発生しないため）
-        nextCurrent = targetLine + 2;
-        nextCount = 1;
-          
+        nextCurrent = targetLine + 1;
+        nextCount = 2; // カウントを進める処理をする 新規行の次のカウントだから２
+
+        // M1-1限定の処理だがM1-1の場合は次の行に進める
+        if (nextCount > maxExec) {
+            nextCount = 1;
+            nextCurrent += 1; //1行次につつめる
+        }
         attempts++;
 
         
@@ -531,8 +528,6 @@ function applyTTag(node, textWidget, app) {
     app.graph.setDirtyCanvas(true, true);
     return true;
 }
-
-
 
 // ========================================
 // /CM タグ解析・実行（変更なし）
@@ -1165,8 +1160,6 @@ app.registerExtension({
                     if (this.size[1] > CONFIG.minNodeHeight) this.originalHeight = this.size[1];
                     forceHide(this);
                 };
-
-
                 this.onMouseMove = null;
                 const originalOnDblClick = this.onDblClick;
                 this.onDblClick = function(e, pos) {
@@ -1214,7 +1207,6 @@ app.registerExtension({
                     this.setDirtyCanvas(true, true);
                 };
                 if (this.onResize) this.onResize();
-
                 if (this.setDirtyCanvas) this.setDirtyCanvas(true, true);
             }
         };

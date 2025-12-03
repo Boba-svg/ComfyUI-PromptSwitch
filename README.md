@@ -1,4 +1,4 @@
-え# ComfyUI-PromptSwitch プロンプト作業を劇的に高速化！
+# ComfyUI-PromptSwitch プロンプト作業を劇的に高速化！
 
 プロンプトのON/OFF切り替えやウェイト調整を、チェックリストのように直感的に行えるカスタムノードです。
 

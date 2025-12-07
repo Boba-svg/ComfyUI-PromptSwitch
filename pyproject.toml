@@ -6,7 +6,7 @@ name = "comfyui-promptswitch"
 version = "0.5.1" 
 
 # 推奨: Managerのリストに表示される短い説明。
-description = "プロンプトをワンクリックで切り替えるためのカスタムノード (Prompt Switch)" 
+description = "Simple checklist-style custom node for ComfyUI. Toggle prompts on/off and change weights with checkboxes. Comes with a built-in random picker that randomly enables/disables items on every generation!" 
 
 # 推奨: Pythonの最低バージョン。通常ComfyUIの推奨バージョンに合わせます。
 requires-python = ">=3.10" 
